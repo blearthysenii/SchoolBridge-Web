@@ -8,7 +8,6 @@ import {
 } from "../services/resultService";
 
 import { getStudentAnalytics } from "../services/analyticsService";
-
 import { getQuestionsByStudent } from "../services/questionService";
 
 type Result = {
@@ -56,6 +55,97 @@ type StudentAnalytics = {
   learning_gaps: ConceptAnalytics[];
 };
 
+// ── Icons ──────────────────────────────────────────────────────────────────────
+function IconBack() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
+}
+function IconChevron() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+function IconPlus() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+function IconClose() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+function IconTrash() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </svg>
+  );
+}
+function IconCheck() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+function IconX() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+function IconWarn() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
+
+// ── Rate bar ──────────────────────────────────────────────────────────────────
+function RateBar({ rate, isGap }: { rate: number; isGap: boolean }) {
+  const color = isGap ? "#ef4444" : rate >= 80 ? "#22c55e" : "#f59e0b";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ flex: 1, height: 5, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+        <div style={{ width: `${rate}%`, height: "100%", background: color, borderRadius: 99, transition: "width 0.4s ease" }} />
+      </div>
+      <span style={{ fontSize: 12, fontWeight: 600, color, minWidth: 36, textAlign: "right" }}>{rate}%</span>
+    </div>
+  );
+}
+
+// ── Stat card ─────────────────────────────────────────────────────────────────
+function StatCard({ label, value, sub, accent }: { label: string; value: string | number; sub?: string; accent?: string }) {
+  return (
+    <div style={{
+      background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10,
+      padding: "16px 20px", display: "flex", flexDirection: "column", gap: 4,
+    }}>
+      <div style={{ fontSize: 11.5, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 700, color: accent ?? "#0f172a", lineHeight: 1.1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: "#94a3b8" }}>{sub}</div>}
+    </div>
+  );
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
 function StudentResults() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -67,207 +157,610 @@ function StudentResults() {
   const [selectedQuestionId, setSelectedQuestionId] = useState<number | "">("");
   const [isCorrect, setIsCorrect] = useState("true");
 
+  const [modalOpen, setModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<"analytics" | "concepts" | "gaps" | "results">("analytics");
+
   const loadResults = async () => {
     if (!id) return;
-
-    const response = await getResultsByStudent(Number(id));
-    setResults(response.data);
+    const r = await getResultsByStudent(Number(id));
+    setResults(r.data);
   };
-
   const loadQuestions = async () => {
     if (!id) return;
-
-    const response = await getQuestionsByStudent(Number(id));
-    setQuestions(response.data);
+    const r = await getQuestionsByStudent(Number(id));
+    setQuestions(r.data);
   };
-
   const loadAnalytics = async () => {
     if (!id) return;
-
-    const response = await getStudentAnalytics(Number(id));
-    setAnalytics(response.data);
+    const r = await getStudentAnalytics(Number(id));
+    setAnalytics(r.data);
   };
-
   const refreshData = async () => {
     await loadResults();
     await loadQuestions();
     await loadAnalytics();
   };
 
+  useEffect(() => { refreshData(); }, [id]);
+
   useEffect(() => {
-    refreshData();
-  }, [id]);
+    if (!modalOpen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setModalOpen(false); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [modalOpen]);
 
   const handleCreateResult = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!id) return;
-
-    if (!selectedQuestionId) {
-      alert("Please select a question");
-      return;
-    }
-
+    if (!id || !selectedQuestionId) { setFormError("Zgjidhni një pyetje."); return; }
+    setSubmitting(true); setFormError("");
     try {
-      await createResult(
-        Number(id),
-        Number(selectedQuestionId),
-        isCorrect === "true"
-      );
-
-      setSelectedQuestionId("");
-      setIsCorrect("true");
-
+      await createResult(Number(id), Number(selectedQuestionId), isCorrect === "true");
+      setSelectedQuestionId(""); setIsCorrect("true");
+      setModalOpen(false);
       await refreshData();
-    } catch (error: any) {
-      console.log(error);
-      alert(error.response?.data?.detail || "Failed to save result");
-    }
+    } catch (err: any) {
+      setFormError(err.response?.data?.detail || "Dështoi ruajtja e rezultatit.");
+    } finally { setSubmitting(false); }
   };
 
   const handleDeleteResult = async (resultId: number) => {
-    try {
-      await deleteResult(resultId);
-      await refreshData();
-    } catch (error) {
-      console.log(error);
-      alert("Failed to delete result");
-    }
+    setDeletingId(resultId);
+    try { await deleteResult(resultId); await refreshData(); }
+    catch { alert("Dështoi fshirja e rezultatit."); }
+    finally { setDeletingId(null); }
   };
 
+  const tabs = [
+    { key: "analytics" as const, label: "Vështrim i përgjithshëm" },
+    { key: "concepts" as const, label: "Konceptet", count: analytics?.concepts.length },
+    { key: "gaps" as const, label: "Boshllëqet", count: analytics?.learning_gaps.length, warn: (analytics?.learning_gaps.length ?? 0) > 0 },
+    { key: "results" as const, label: "Rezultatet", count: results.length },
+  ];
+
+  const rateColor = (rate: number) => rate >= 80 ? "#22c55e" : rate >= 50 ? "#f59e0b" : "#ef4444";
+
   return (
-    <div style={{ padding: "40px" }}>
-      <button onClick={() => navigate(-1)}>Back</button>
+    <>
+      <style>{`
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; }
+        a { text-decoration: none; color: inherit; }
 
-      <h1>Student Results</h1>
+        .topbar {
+          background: #fff; border-bottom: 1px solid #e2e8f0;
+          padding: 0 28px; height: 56px;
+          display: flex; align-items: center; justify-content: space-between;
+          position: sticky; top: 0; z-index: 50;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 10px; }
+        .back-btn {
+          display: flex; align-items: center; gap: 6px;
+          background: none; border: 1px solid #e2e8f0; border-radius: 7px;
+          padding: 6px 12px; font-size: 13px; font-weight: 500; color: #475569;
+          cursor: pointer; transition: background 0.12s, border-color 0.12s;
+        }
+        .back-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13.5px; }
+        .breadcrumb-seg { color: #64748b; font-weight: 500; }
+        .breadcrumb-sep { color: #cbd5e1; display: flex; align-items: center; }
+        .breadcrumb-current { color: #0f172a; font-weight: 600; }
 
-      <p>Student ID: {id}</p>
+        .page { max-width: 900px; margin: 0 auto; padding: 28px; }
 
-      {analytics && <p>Student Name: {analytics.student_name}</p>}
+        .student-header {
+          display: flex; align-items: flex-start; justify-content: space-between;
+          margin-bottom: 24px; gap: 12px;
+        }
+        .student-avatar {
+          width: 44px; height: 44px; border-radius: 50%;
+          background: #dbeafe; color: #2563eb;
+          font-size: 16px; font-weight: 700;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .student-name { font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; }
+        .student-sub { font-size: 13px; color: #94a3b8; margin-top: 2px; }
 
-      <hr />
+        .stats-row {
+          display: grid; grid-template-columns: repeat(4, 1fr);
+          gap: 12px; margin-bottom: 28px;
+        }
 
-      <h2>Add Answer / Result</h2>
+        .tabs {
+          display: flex; border-bottom: 1px solid #e2e8f0;
+          margin-bottom: 24px; overflow-x: auto; gap: 0;
+        }
+        .tab {
+          display: flex; align-items: center; gap: 7px;
+          padding: 10px 18px; font-size: 13.5px; font-weight: 500; color: #64748b;
+          border-bottom: 2px solid transparent; margin-bottom: -1px;
+          cursor: pointer; white-space: nowrap; transition: color 0.12s;
+          background: none; border-top: none; border-left: none; border-right: none;
+        }
+        .tab:hover { color: #0f172a; }
+        .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+        .tab-badge {
+          background: #f1f5f9; color: #64748b;
+          font-size: 11px; font-weight: 600;
+          padding: 1px 6px; border-radius: 10px; min-width: 20px; text-align: center;
+        }
+        .tab.active .tab-badge { background: #eff6ff; color: #2563eb; }
+        .tab-badge.warn { background: #fef3c7; color: #92400e; }
+        .tab.active .tab-badge.warn { background: #fef3c7; color: #92400e; }
 
-      <form onSubmit={handleCreateResult}>
-        <select
-          value={selectedQuestionId}
-          onChange={(e) => setSelectedQuestionId(Number(e.target.value))}
-          required
-        >
-          <option value="">Select question</option>
+        /* SECTION HEADER */
+        .section-hdr {
+          display: flex; align-items: center; justify-content: space-between;
+          margin-bottom: 16px;
+        }
+        .section-hdr-title { font-size: 14px; font-weight: 700; color: #0f172a; }
+        .section-hdr-sub { font-size: 12.5px; color: #94a3b8; margin-top: 1px; }
 
-          {questions.map((question) => (
-            <option key={question.id} value={question.id}>
-              {question.subject_name} → {question.concept_name} →{" "}
-              {question.question_text}
-            </option>
+        /* TABLE */
+        .data-table {
+          width: 100%; border-collapse: collapse;
+          background: #fff; border: 1px solid #e2e8f0;
+          border-radius: 10px; overflow: hidden;
+        }
+        .data-table th {
+          text-align: left; font-size: 11.5px; font-weight: 600;
+          color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;
+          padding: 10px 16px; background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .data-table td {
+          padding: 12px 16px; font-size: 13.5px; color: #334155;
+          border-bottom: 1px solid #f1f5f9; vertical-align: middle;
+        }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tr:hover td { background: #fafbff; }
+        .td-actions { text-align: right; }
+
+        /* CONCEPT CARDS */
+        .concept-grid {
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          gap: 12px;
+        }
+        .concept-card {
+          background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+          padding: 16px 18px;
+        }
+        .concept-card.is-gap { border-color: #fecaca; background: #fff5f5; }
+        .concept-card-subject { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+        .concept-card-name { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 10px; }
+        .concept-card-counts { display: flex; gap: 12px; margin-top: 10px; }
+        .count-pill {
+          display: flex; align-items: center; gap: 4px;
+          font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 5px;
+        }
+        .count-pill.correct { background: #f0fdf4; color: #16a34a; }
+        .count-pill.incorrect { background: #fff5f5; color: #dc2626; }
+
+        /* GAP CARD */
+        .gap-card {
+          background: #fff; border: 1px solid #fecaca;
+          border-left: 4px solid #ef4444;
+          border-radius: 10px; padding: 16px 18px;
+          display: flex; align-items: flex-start; gap: 12px;
+        }
+        .gap-icon {
+          width: 32px; height: 32px; border-radius: 7px;
+          background: #fee2e2; color: #ef4444;
+          display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .gap-subject { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .gap-name { font-size: 14px; font-weight: 700; color: #0f172a; }
+        .gap-meta { font-size: 12px; color: #64748b; margin-top: 6px; }
+        .gap-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+
+        /* STATUS PILL */
+        .status-pill {
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 3px 9px; border-radius: 5px;
+          font-size: 12px; font-weight: 600;
+        }
+        .status-pill.correct { background: #f0fdf4; color: #16a34a; }
+        .status-pill.incorrect { background: #fff5f5; color: #dc2626; }
+
+        /* EMPTY */
+        .empty-state {
+          background: #f8fafc; border: 1px dashed #e2e8f0;
+          border-radius: 10px; padding: 36px 24px;
+          text-align: center; color: #94a3b8; font-size: 13.5px;
+        }
+        .empty-state strong { display: block; font-size: 14px; color: #64748b; margin-bottom: 4px; }
+        .empty-gaps {
+          background: #f0fdf4; border: 1px solid #bbf7d0;
+          border-radius: 10px; padding: 24px;
+          text-align: center; color: #16a34a; font-size: 13.5px; font-weight: 500;
+        }
+
+        /* BUTTONS */
+        .btn-primary {
+          display: inline-flex; align-items: center; gap: 6px;
+          background: #2563eb; color: #fff;
+          border: none; border-radius: 7px;
+          padding: 8px 14px; font-size: 13px; font-weight: 600;
+          cursor: pointer; transition: background 0.12s; white-space: nowrap;
+        }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+        .btn-secondary {
+          padding: 8px 16px; border-radius: 7px;
+          font-size: 13px; font-weight: 600;
+          background: #f1f5f9; color: #475569;
+          border: none; cursor: pointer; transition: background 0.12s;
+        }
+        .btn-secondary:hover { background: #e2e8f0; }
+        .btn-delete {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
+          color: #64748b; background: none; border: 1px solid #e2e8f0;
+          cursor: pointer; transition: all 0.12s;
+        }
+        .btn-delete:hover { background: #fff1f2; color: #e11d48; border-color: #fecdd3; }
+        .btn-delete:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* MODAL */
+        .modal-overlay {
+          position: fixed; inset: 0;
+          background: rgba(15,23,42,0.35);
+          display: flex; align-items: center; justify-content: center;
+          z-index: 200; padding: 16px;
+        }
+        .modal {
+          background: #fff; border-radius: 12px;
+          width: 100%; max-width: 460px;
+          box-shadow: 0 12px 40px rgba(15,23,42,0.18); padding: 28px;
+        }
+        .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+        .modal-title { font-size: 16px; font-weight: 700; color: #0f172a; }
+        .modal-close { background: none; border: none; cursor: pointer; color: #94a3b8; padding: 2px; border-radius: 5px; }
+        .modal-close:hover { color: #475569; background: #f1f5f9; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
+
+        /* FORM */
+        .form-group { margin-bottom: 14px; }
+        .form-label { display: block; font-size: 12.5px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+        .form-select {
+          width: 100%; padding: 9px 12px;
+          border: 1px solid #e2e8f0; border-radius: 7px;
+          font-size: 13.5px; color: #0f172a; background: #fff;
+          outline: none; transition: border-color 0.12s, box-shadow 0.12s;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+          padding-right: 32px;
+        }
+        .form-select:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(147,197,253,0.25); }
+        .form-error { font-size: 12px; color: #e11d48; margin-top: 10px; }
+
+        /* ANSWER TOGGLE */
+        .answer-toggle { display: flex; gap: 8px; }
+        .answer-opt {
+          flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+          padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600;
+          cursor: pointer; border: 2px solid #e2e8f0; transition: all 0.14s;
+          color: #64748b; background: #f8fafc;
+        }
+        .answer-opt.selected-correct { border-color: #22c55e; background: #f0fdf4; color: #16a34a; }
+        .answer-opt.selected-incorrect { border-color: #ef4444; background: #fff5f5; color: #dc2626; }
+
+        @media (max-width: 640px) {
+          .page { padding: 16px; }
+          .topbar { padding: 0 16px; }
+          .breadcrumb { display: none; }
+          .stats-row { grid-template-columns: repeat(2, 1fr); }
+          .concept-grid { grid-template-columns: 1fr; }
+          .hide-mobile { display: none; }
+          .tab { padding: 10px 12px; font-size: 12.5px; }
+        }
+      `}</style>
+
+      {/* TOP BAR */}
+      <header className="topbar">
+        <div className="topbar-left">
+          <button className="back-btn" onClick={() => navigate(-1)}>
+            <IconBack /> Kthehu
+          </button>
+          <div className="breadcrumb">
+            <span className="breadcrumb-seg">Nxënësit</span>
+            <span className="breadcrumb-sep"><IconChevron /></span>
+            <span className="breadcrumb-current">
+              {analytics ? analytics.student_name : `ID: ${id}`}
+            </span>
+          </div>
+        </div>
+        <button className="btn-primary" onClick={() => { setFormError(""); setModalOpen(true); }}>
+          <IconPlus /> Regjistro përgjigje
+        </button>
+      </header>
+
+      <div className="page">
+        {/* STUDENT HEADER */}
+        <div className="student-header">
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div className="student-avatar">
+              {analytics?.student_name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() ?? "—"}
+            </div>
+            <div>
+              <div className="student-name">{analytics?.student_name ?? `Nxënësi #${id}`}</div>
+              <div className="student-sub">ID: {id} · Rezultatet dhe analitika</div>
+            </div>
+          </div>
+        </div>
+
+        {/* STATS ROW */}
+        <div className="stats-row">
+          <StatCard label="Gjithsej" value={analytics?.total_results ?? "—"} sub="përgjigje" />
+          <StatCard label="Korrekte" value={analytics?.correct ?? "—"} accent="#16a34a" />
+          <StatCard label="Gabim" value={analytics?.incorrect ?? "—"} accent="#dc2626" />
+          <StatCard
+            label="Sukses"
+            value={analytics ? `${analytics.success_rate}%` : "—"}
+            accent={analytics ? rateColor(analytics.success_rate) : undefined}
+          />
+        </div>
+
+        {/* TABS */}
+        <div className="tabs">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              className={`tab${activeTab === t.key ? " active" : ""}`}
+              onClick={() => setActiveTab(t.key)}
+            >
+              {t.label}
+              {t.count !== undefined && (
+                <span className={`tab-badge${t.warn ? " warn" : ""}`}>{t.count}</span>
+              )}
+            </button>
           ))}
-        </select>
+        </div>
 
-        <br />
-        <br />
+        {/* ── ANALYTICS TAB ── */}
+        {activeTab === "analytics" && (
+          <>
+            <div className="section-hdr">
+              <div>
+                <div className="section-hdr-title">Vështrim i përgjithshëm</div>
+                <div className="section-hdr-sub">Performanca e nxënësit sipas koncepteve</div>
+              </div>
+            </div>
+            {analytics && analytics.concepts.length > 0 ? (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Lënda / Koncepti</th>
+                    <th>Shkalla e suksesit</th>
+                    <th className="hide-mobile">Korrekte</th>
+                    <th className="hide-mobile">Gabim</th>
+                    <th>Statusi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analytics.concepts.map((c) => (
+                    <tr key={c.concept_id}>
+                      <td>
+                        <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>{c.subject_name}</div>
+                        <div style={{ fontWeight: 600, color: "#0f172a" }}>{c.concept_name}</div>
+                      </td>
+                      <td style={{ minWidth: 140 }}>
+                        <RateBar rate={c.success_rate} isGap={c.is_gap} />
+                      </td>
+                      <td className="hide-mobile" style={{ color: "#16a34a", fontWeight: 600 }}>{c.correct}</td>
+                      <td className="hide-mobile" style={{ color: "#dc2626", fontWeight: 600 }}>{c.incorrect}</td>
+                      <td>
+                        {c.is_gap ? (
+                          <span className="status-pill incorrect"><IconWarn /> Mangësi</span>
+                        ) : (
+                          <span className="status-pill correct"><IconCheck /> Mirë</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="empty-state">
+                <strong>Nuk ka të dhëna ende</strong>
+                Regjistroni përgjigjet e nxënësit për të parë analitikën.
+              </div>
+            )}
+          </>
+        )}
 
-        <select
-          value={isCorrect}
-          onChange={(e) => setIsCorrect(e.target.value)}
-        >
-          <option value="true">Correct</option>
-          <option value="false">Incorrect</option>
-        </select>
+        {/* ── CONCEPTS TAB ── */}
+        {activeTab === "concepts" && (
+          <>
+            <div className="section-hdr">
+              <div>
+                <div className="section-hdr-title">Performanca sipas koncepteve</div>
+                <div className="section-hdr-sub">{analytics?.concepts.length ?? 0} koncepte të vlerësuara</div>
+              </div>
+            </div>
+            {analytics && analytics.concepts.length > 0 ? (
+              <div className="concept-grid">
+                {analytics.concepts.map((c) => (
+                  <div key={c.concept_id} className={`concept-card${c.is_gap ? " is-gap" : ""}`}>
+                    <div className="concept-card-subject">{c.subject_name}</div>
+                    <div className="concept-card-name">{c.concept_name}</div>
+                    <RateBar rate={c.success_rate} isGap={c.is_gap} />
+                    <div className="concept-card-counts">
+                      <span className="count-pill correct"><IconCheck />{c.correct} korrekte</span>
+                      <span className="count-pill incorrect"><IconX />{c.incorrect} gabim</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <strong>Asnjë koncept i vlerësuar</strong>
+                Regjistroni përgjigje për të parë performancën sipas koncepteve.
+              </div>
+            )}
+          </>
+        )}
 
-        <br />
-        <br />
+        {/* ── GAPS TAB ── */}
+        {activeTab === "gaps" && (
+          <>
+            <div className="section-hdr">
+              <div>
+                <div className="section-hdr-title">Boshllëqet në mësim</div>
+                <div className="section-hdr-sub">Koncepte ku nxënësi ka nevojë për mbështetje</div>
+              </div>
+            </div>
+            {analytics && analytics.learning_gaps.length > 0 ? (
+              <div className="gap-grid">
+                {analytics.learning_gaps.map((gap) => (
+                  <div key={gap.concept_id} className="gap-card">
+                    <div className="gap-icon"><IconWarn /></div>
+                    <div style={{ flex: 1 }}>
+                      <div className="gap-subject">{gap.subject_name}</div>
+                      <div className="gap-name">{gap.concept_name}</div>
+                      <div style={{ marginTop: 8 }}>
+                        <RateBar rate={gap.success_rate} isGap={true} />
+                      </div>
+                      <div className="gap-meta">
+                        {gap.correct} korrekte · {gap.incorrect} gabim · {gap.total} gjithsej
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-gaps">
+                Asnjë boshllëk i zbuluar — nxënësi po performon mirë në të gjitha konceptet.
+              </div>
+            )}
+          </>
+        )}
 
-        <button type="submit">Save Result</button>
-      </form>
+        {/* ── RESULTS TAB ── */}
+        {activeTab === "results" && (
+          <>
+            <div className="section-hdr">
+              <div>
+                <div className="section-hdr-title">Të gjitha rezultatet</div>
+                <div className="section-hdr-sub">{results.length} përgjigje të regjistruara</div>
+              </div>
+            </div>
+            {results.length > 0 ? (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Pyetja</th>
+                    <th className="hide-mobile">Lënda / Koncepti</th>
+                    <th>Statusi</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((r) => (
+                    <tr key={r.id}>
+                      <td style={{ maxWidth: 300 }}>
+                        <div style={{ fontWeight: 500, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {r.question_text}
+                        </div>
+                      </td>
+                      <td className="hide-mobile">
+                        <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>{r.subject_name}</div>
+                        <div style={{ fontSize: 13, color: "#334155" }}>{r.concept_name}</div>
+                      </td>
+                      <td>
+                        {r.is_correct ? (
+                          <span className="status-pill correct"><IconCheck /> Korrekte</span>
+                        ) : (
+                          <span className="status-pill incorrect"><IconX /> Gabim</span>
+                        )}
+                      </td>
+                      <td className="td-actions">
+                        <button
+                          className="btn-delete"
+                          onClick={() => handleDeleteResult(r.id)}
+                          disabled={deletingId === r.id}
+                        >
+                          <IconTrash />
+                          {deletingId === r.id ? "…" : "Fshi"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="empty-state">
+                <strong>Asnjë rezultat ende</strong>
+                Regjistroni përgjigjen e parë duke klikuar "Regjistro përgjigje".
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
-      <hr />
+      {/* ── MODAL ── */}
+      {modalOpen && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setModalOpen(false)}>
+          <div className="modal">
+            <div className="modal-header">
+              <div className="modal-title">Regjistro përgjigje</div>
+              <button className="modal-close" onClick={() => setModalOpen(false)}><IconClose /></button>
+            </div>
+            <form onSubmit={handleCreateResult}>
+              <div className="form-group">
+                <label className="form-label">Pyetja</label>
+                <select
+                  className="form-select"
+                  value={selectedQuestionId}
+                  onChange={(e) => setSelectedQuestionId(Number(e.target.value))}
+                  required
+                >
+                  <option value="">— Zgjidhni pyetjen —</option>
+                  {questions.map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {q.subject_name} → {q.concept_name} → {q.question_text}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-      <h2>Analytics</h2>
+              <div className="form-group">
+                <label className="form-label">Përgjigja</label>
+                <div className="answer-toggle">
+                  <div
+                    className={`answer-opt${isCorrect === "true" ? " selected-correct" : ""}`}
+                    onClick={() => setIsCorrect("true")}
+                  >
+                    <IconCheck /> Korrekte
+                  </div>
+                  <div
+                    className={`answer-opt${isCorrect === "false" ? " selected-incorrect" : ""}`}
+                    onClick={() => setIsCorrect("false")}
+                  >
+                    <IconX /> Gabim
+                  </div>
+                </div>
+              </div>
 
-      {analytics ? (
-        <>
-          <p>Total Results: {analytics.total_results}</p>
-          <p>Correct: {analytics.correct}</p>
-          <p>Incorrect: {analytics.incorrect}</p>
-          <p>Success Rate: {analytics.success_rate}%</p>
-        </>
-      ) : (
-        <p>No analytics yet.</p>
+              {formError && <div className="form-error">{formError}</div>}
+
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)}>Anulo</button>
+                <button type="submit" className="btn-primary" disabled={submitting}>
+                  {submitting ? "Duke ruajtur…" : "Ruaj rezultatin"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
-
-      <hr />
-
-      <h2>Learning Gaps</h2>
-
-      {analytics && analytics.learning_gaps.length > 0 ? (
-        <ul>
-          {analytics.learning_gaps.map((gap) => (
-            <li key={gap.concept_id} style={{ marginBottom: "12px" }}>
-              ⚠️ <strong>{gap.subject_name}</strong> → {gap.concept_name}
-              <br />
-              Success Rate: {gap.success_rate}%
-              <br />
-              Correct: {gap.correct} | Incorrect: {gap.incorrect}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>No learning gaps detected.</p>
-      )}
-
-      <hr />
-
-      <h2>Concept Performance</h2>
-
-      {analytics && analytics.concepts.length > 0 ? (
-        <ul>
-          {analytics.concepts.map((concept) => (
-            <li key={concept.concept_id} style={{ marginBottom: "12px" }}>
-              <strong>{concept.subject_name}</strong> → {concept.concept_name}
-              <br />
-              Success Rate: {concept.success_rate}%
-              <br />
-              Correct: {concept.correct} | Incorrect: {concept.incorrect}
-              <br />
-              Status: {concept.is_gap ? "Needs improvement ⚠️" : "Good ✅"}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>No concept performance yet.</p>
-      )}
-
-      <hr />
-
-      <h2>Results</h2>
-
-      {results.length > 0 ? (
-        <ul>
-          {results.map((result) => (
-            <li key={result.id} style={{ marginBottom: "12px" }}>
-              <strong>{result.subject_name}</strong>
-              {" → "}
-              {result.concept_name}
-              <br />
-              Question: {result.question_text}
-              <br />
-              Status: {result.is_correct ? "Correct ✅" : "Incorrect ❌"}
-
-              <button
-                onClick={() => handleDeleteResult(result.id)}
-                style={{ marginLeft: "10px" }}
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>No results yet.</p>
-      )}
-    </div>
+    </>
   );
 }
 

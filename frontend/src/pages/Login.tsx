@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
+import { useGoogleLogin } from "@react-oauth/google";
+import { FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import api from "../services/api";
 
 function Login() {
@@ -12,6 +13,13 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const meta = document.querySelector("meta[name='viewport']");
+    if (meta) {
+      meta.setAttribute("content", "width=device-width, initial-scale=1");
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,112 +41,228 @@ function Login() {
         navigate("/dashboard");
       }, 1000);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Email ose fjalëkalim i pasaktë.");
+      setError(err.response?.data?.detail || "Email ose fjalekalim i pasakte.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse: any) => {
-    setError(null);
-    setSuccessMsg(null);
-    setLoading(true);
+  const googleLogin = useGoogleLogin({
+    flow: "implicit",
+    onSuccess: async (tokenResponse) => {
+      setError(null);
+      setSuccessMsg(null);
+      setLoading(true);
 
-    try {
-      if (!credentialResponse.credential) {
-        setError("Nuk u pranua kredenciali nga Google.");
-        return;
+      try {
+        const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.access_token}`,
+          },
+        });
+
+        const userInfo = await userInfoRes.json();
+
+        const response = await api.post("/users/google-login", {
+          credential: tokenResponse.access_token,
+          user_info: userInfo,
+        });
+
+        if (response.data.status === "existing_user") {
+          localStorage.setItem("token", response.data.access_token);
+          setSuccessMsg("Hyrja me Google u krye me sukses!");
+          setTimeout(() => navigate("/dashboard"), 1000);
+          return;
+        }
+
+        if (response.data.status === "new_user") {
+          localStorage.setItem("google_email", response.data.email);
+          localStorage.setItem("google_name", response.data.full_name || "");
+          navigate("/complete-google-register");
+          return;
+        }
+
+        setError("Pergjigje e papritur nga Google login.");
+      } catch (err: any) {
+        setError(err.response?.data?.detail || "Hyrja me Google deshtoi. Provo perseri.");
+      } finally {
+        setLoading(false);
       }
-
-      const response = await api.post("/users/google-login", {
-        credential: credentialResponse.credential,
-      });
-
-      if (response.data.status === "existing_user") {
-        localStorage.setItem("token", response.data.access_token);
-        setSuccessMsg("Hyrja me Google u krye me sukses!");
-
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 1000);
-
-        return;
-      }
-
-      if (response.data.status === "new_user") {
-        localStorage.setItem("google_email", response.data.email);
-        localStorage.setItem("google_name", response.data.full_name || "");
-
-        navigate("/complete-google-register");
-        return;
-      }
-
-      setError("Përgjigje e papritur nga Google login.");
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Hyrja me Google dështoi. Provo përsëri.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    onError: () => {
+      setError("Hyrja me Google deshtoi. Provo perseri.");
+    },
+  });
 
   return (
     <>
       <style>{`
         * {
           box-sizing: border-box;
+          -webkit-tap-highlight-color: transparent;
         }
 
-        body {
+        html,
+        body,
+        #root {
           margin: 0;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-          background: #f5f5f7;
+          width: 100%;
+          min-height: 100%;
+          background: #ffffff;
+          overflow-x: hidden;
         }
 
         .login-page {
           min-height: 100vh;
+          min-height: 100dvh;
           width: 100%;
           display: flex;
-          justify-content: center;
           align-items: center;
+          justify-content: center;
           padding: 24px;
-          background:
-            radial-gradient(circle at top, rgba(255,255,255,0.95), transparent 35%),
-            linear-gradient(135deg, #ffffff 0%, #f4f4f5 45%, #d9d9dd 100%);
+          background: #ffffff;
+          font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Arial, sans-serif;
         }
 
-        .login-content {
+        .login-card {
           width: 100%;
-          max-width: 430px;
+          max-width: 410px;
+          background: transparent;
         }
 
         .login-title {
-          margin: 0;
-          color: #111;
-          font-size: 38px;
-          font-weight: 800;
-          letter-spacing: -1.2px;
+          margin: 0 0 10px;
           text-align: center;
+          font-size: 36px;
+          line-height: 1.05;
+          font-weight: 600;
+          letter-spacing: -1.6px;
+          color: #050505;
         }
 
         .login-subtitle {
-          margin: 10px 0 30px;
-          color: #6e6e73;
-          font-size: 15px;
+          margin: 0 0 24px;
           text-align: center;
+          font-size: 15px;
+          color: #74797a;
         }
 
-        .google-box {
+        .login-form {
           display: flex;
+          flex-direction: column;
+          gap: 12px;
+          width: 100%;
+        }
+
+        .input-group {
+          width: 100%;
+          height: 50px;
+          border: 1px solid #dedede;
+          border-radius: 12px;
+          background: #ffffff;
+          display: flex;
+          align-items: center;
+          padding: 0 13px;
+          overflow: hidden;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .input-group:focus-within {
+          border-color: #b9b9b9;
+          box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.035);
+        }
+
+        .input-icon {
+          width: 18px;
+          min-width: 18px;
+          height: 18px;
+          color: #6f7470;
+          margin-right: 12px;
+        }
+
+        .login-input {
+          flex: 1;
+          width: 100%;
+          height: 100%;
+          border: none;
+          outline: none;
+          background: transparent;
+          color: #111111;
+          font-size: 16px;
+          font-weight: 400;
+          min-width: 0;
+          font-family: inherit;
+          padding: 0;
+          margin: 0;
+        }
+
+        .login-input::placeholder {
+          color: #74797a;
+        }
+
+        .login-input:-webkit-autofill,
+        .login-input:-webkit-autofill:hover,
+        .login-input:-webkit-autofill:focus,
+        .login-input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+          -webkit-text-fill-color: #111111 !important;
+          caret-color: #111111 !important;
+          transition: background-color 9999s ease-in-out 0s;
+        }
+
+        .eye-button {
+          width: 34px;
+          min-width: 34px;
+          height: 34px;
+          border: none;
+          background: transparent;
+          color: #2f3331;
+          font-size: 20px;
+          cursor: pointer;
+          padding: 0;
+          display: flex;
+          align-items: center;
           justify-content: center;
-          margin-bottom: 24px;
+        }
+
+        .forgot-row {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: -4px;
+        }
+
+        .forgot-link {
+          color: #111111;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .main-button {
+          width: 100%;
+          height: 52px;
+          margin-top: 10px;
+          border: none;
+          border-radius: 999px;
+          background: #1f2320;
+          color: white;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: inherit;
+        }
+
+        .main-button:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
         }
 
         .divider {
           display: flex;
           align-items: center;
-          gap: 14px;
-          margin: 28px 0;
-          color: #8e8e93;
+          gap: 12px;
+          margin: 22px 0;
+          color: #8a8f8c;
           font-size: 14px;
         }
 
@@ -147,233 +271,157 @@ function Login() {
           content: "";
           flex: 1;
           height: 1px;
-          background: #d1d1d6;
+          background: #e0e0e0;
         }
 
-        .message {
+        .google-button {
           width: 100%;
-          padding: 12px 14px;
-          border-radius: 14px;
-          font-size: 14px;
-          margin-bottom: 16px;
-          text-align: center;
-        }
-
-        .message.error {
-          color: #b42318;
-          background: #fff1f0;
-          border: 1px solid #ffd6d3;
-        }
-
-        .message.success {
-          color: #067647;
-          background: #ecfdf3;
-          border: 1px solid #abefc6;
-        }
-
-        .form-group {
-          margin-bottom: 22px;
-        }
-
-        .form-label {
-          display: block;
-          margin-bottom: 10px;
-          color: #111;
+          height: 50px;
+          border: 1px solid #dedede;
+          border-radius: 12px;
+          background: #ffffff;
+          color: #1a1a1a;
           font-size: 15px;
-          font-weight: 700;
-          text-align: left;
-        }
-
-        .input-wrapper {
-          position: relative;
-        }
-
-        .form-input {
-          width: 100%;
-          height: 54px;
-          border: 1px solid #cfcfd4;
-          border-radius: 17px;
-          padding: 0 17px;
-          background: rgba(255, 255, 255, 0.72);
-          color: #111;
-          font-size: 15px;
-          outline: none;
-          transition: 0.25s ease;
-        }
-
-        .form-input.password {
-          padding-right: 78px;
-        }
-
-        .form-input::placeholder {
-          color: #777;
-        }
-
-        .form-input:focus {
-          border-color: #111;
-          background: #fff;
-          box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.06);
-        }
-
-        .show-btn {
-          position: absolute;
-          right: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          border: none;
-          background: transparent;
-          color: #111;
-          font-size: 14px;
-          font-weight: 700;
+          font-weight: 500;
           cursor: pointer;
-          padding: 8px;
-        }
-
-        .forgot-row {
+          font-family: inherit;
           display: flex;
-          justify-content: flex-end;
-          margin: -4px 0 26px;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .forgot-link,
-        .register-link {
-          color: #111;
-          text-decoration: none;
-          font-size: 14px;
-          font-weight: 700;
+        .google-button:hover {
+          border-color: #b9b9b9;
+          box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.035);
         }
 
-        .forgot-link:hover,
-        .register-link:hover {
-          text-decoration: underline;
-        }
-
-        .login-button {
-          width: 100%;
-          height: 56px;
-          border: none;
-          border-radius: 18px;
-          background: linear-gradient(135deg, #111 0%, #1f1f22 45%, #525256 100%);
-          color: #fff;
-          font-size: 17px;
-          font-weight: 800;
-          cursor: pointer;
-          transition: 0.25s ease;
-          box-shadow: 0 18px 36px rgba(0, 0, 0, 0.25);
-        }
-
-        .login-button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 22px 44px rgba(0, 0, 0, 0.3);
-        }
-
-        .login-button:disabled {
+        .google-button:disabled {
           opacity: 0.65;
           cursor: not-allowed;
-          transform: none;
+        }
+
+        .google-icon {
+          width: 20px;
+          height: 20px;
+          flex-shrink: 0;
         }
 
         .register-text {
-          margin: 28px 0 0;
+          margin: 26px 0 0;
           text-align: center;
-          color: #6e6e73;
           font-size: 15px;
+          color: #1a1a1a;
         }
 
-        @media (max-width: 600px) {
-          .login-page {
-            align-items: flex-start;
-            padding: 48px 22px 24px;
-          }
+        .register-link {
+          color: #000000;
+          font-weight: 700;
+          text-decoration: none;
+        }
 
-          .login-content {
-            max-width: 100%;
+        .message {
+          padding: 11px 13px;
+          border-radius: 12px;
+          font-size: 14px;
+          margin-bottom: 13px;
+          text-align: center;
+        }
+
+        .message.success {
+          background: #edf9f1;
+          color: #157c3b;
+        }
+
+        .message.error {
+          background: #fff0f0;
+          color: #c62828;
+        }
+
+        @media (max-width: 480px) {
+          .login-page {
+            padding: 24px;
           }
 
           .login-title {
-            font-size: 32px;
-          }
-
-          .login-subtitle {
-            font-size: 14px;
-            margin-bottom: 26px;
-          }
-
-          .divider {
-            margin: 24px 0;
-          }
-
-          .form-input,
-          .login-button {
-            height: 52px;
+            font-size: 33px;
           }
         }
       `}</style>
 
-      <div className="login-page">
-        <div className="login-content">
-          <h1 className="login-title">Mirë se erdhe përsëri</h1>
-          <p className="login-subtitle">Hyr për të vazhduar në SchoolBridge</p>
+      <main className="login-page">
+        <section className="login-card">
+          <h1 className="login-title">
+            Mire se erdhe <br /> perseri
+          </h1>
 
-          <div className="google-box">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setError("Hyrja me Google dështoi. Provo përsëri.")}
-              text="signin_with"
-            />
-          </div>
-
-          <div className="divider">ose</div>
+          <p className="login-subtitle">Hyr per te vazhduar ne SchoolBridge</p>
 
           {error && <div className="message error">{error}</div>}
           {successMsg && <div className="message success">{successMsg}</div>}
 
-          <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label className="form-label">Email</label>
+          <form onSubmit={handleLogin} className="login-form">
+            <div className="input-group">
+              <FiMail className="input-icon" />
               <input
-                className="form-input"
+                className="login-input"
                 type="email"
-                placeholder="Emaili juaj"
+                placeholder="Email adresa"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Fjalëkalimi</label>
+            <div className="input-group">
+              <FiLock className="input-icon" />
+              <input
+                className="login-input"
+                type={showPassword ? "text" : "password"}
+                placeholder="Fjalekalimi"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
 
-              <div className="input-wrapper">
-                <input
-                  className="form-input password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Fjalëkalimi juaj"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-
-                <button
-                  className="show-btn"
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                >
-                  {showPassword ? "Fsheh" : "Shfaq"}
-                </button>
-              </div>
+              <button
+                type="button"
+                className="eye-button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label="Shfaq ose fsheh fjalekalimin"
+              >
+                {showPassword ? <FiEyeOff /> : <FiEye />}
+              </button>
             </div>
 
             <div className="forgot-row">
               <Link className="forgot-link" to="/forgot-password">
-                Keni harruar fjalëkalimin?
+                Keni harruar fjalekalimin?
               </Link>
             </div>
 
-            <button className="login-button" type="submit" disabled={loading}>
-              {loading ? "Duke hyrë..." : "Hyr"}
+            <button className="main-button" type="submit" disabled={loading}>
+              {loading ? "Duke hyre..." : "Hyr"}
             </button>
           </form>
+
+          <div className="divider">ose</div>
+
+          <button
+            type="button"
+            className="google-button"
+            onClick={() => googleLogin()}
+            disabled={loading}
+          >
+            <svg className="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Hyr me Google
+          </button>
 
           <p className="register-text">
             Nuk ke llogari?{" "}
@@ -381,8 +429,8 @@ function Login() {
               Regjistrohu
             </Link>
           </p>
-        </div>
-      </div>
+        </section>
+      </main>
     </>
   );
 }
