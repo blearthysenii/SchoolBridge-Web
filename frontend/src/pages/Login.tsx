@@ -97,6 +97,8 @@ function Login() {
   return (
     <>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
         * {
           box-sizing: border-box;
           -webkit-tap-highlight-color: transparent;
@@ -108,7 +110,7 @@ function Login() {
           margin: 0;
           width: 100%;
           min-height: 100%;
-          background: #ffffff;
+          background: #f8fafc;
           overflow-x: hidden;
         }
 
@@ -120,64 +122,95 @@ function Login() {
           align-items: center;
           justify-content: center;
           padding: 24px;
-          background: #ffffff;
-          font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Arial, sans-serif;
+          background: #f8fafc;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
         }
 
         .login-card {
           width: 100%;
-          max-width: 410px;
-          background: transparent;
+          max-width: 420px;
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          padding: 36px 32px 32px;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 28px rgba(15, 23, 42, 0.05);
+        }
+
+        .brand {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          margin-bottom: 24px;
+        }
+        .brand-mark {
+          width: 36px;
+          height: 36px;
+          background: #2563eb;
+          border-radius: 9px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #ffffff;
+          font-weight: 700;
+          font-size: 14px;
+          letter-spacing: -0.5px;
+        }
+        .brand-text {
+          font-size: 15px;
+          font-weight: 700;
+          color: #111827;
+          letter-spacing: -0.3px;
         }
 
         .login-title {
-          margin: 0 0 10px;
+          margin: 0 0 8px;
           text-align: center;
-          font-size: 36px;
-          line-height: 1.05;
-          font-weight: 600;
-          letter-spacing: -1.6px;
-          color: #050505;
+          font-size: 26px;
+          line-height: 1.2;
+          font-weight: 700;
+          letter-spacing: -0.6px;
+          color: #111827;
         }
 
         .login-subtitle {
-          margin: 0 0 24px;
+          margin: 0 0 26px;
           text-align: center;
-          font-size: 15px;
-          color: #74797a;
+          font-size: 14.5px;
+          color: #6b7280;
         }
 
         .login-form {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 14px;
           width: 100%;
         }
 
         .input-group {
           width: 100%;
-          height: 50px;
-          border: 1px solid #dedede;
-          border-radius: 12px;
+          height: 48px;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
           background: #ffffff;
           display: flex;
           align-items: center;
-          padding: 0 13px;
+          padding: 0 14px;
           overflow: hidden;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
         .input-group:focus-within {
-          border-color: #b9b9b9;
-          box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.035);
+          border-color: #93c5fd;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
         }
 
         .input-icon {
           width: 18px;
           min-width: 18px;
           height: 18px;
-          color: #6f7470;
-          margin-right: 12px;
+          color: #9ca3af;
+          margin-right: 11px;
         }
 
         .login-input {
@@ -187,8 +220,8 @@ function Login() {
           border: none;
           outline: none;
           background: transparent;
-          color: #111111;
-          font-size: 16px;
+          color: #111827;
+          font-size: 15px;
           font-weight: 400;
           min-width: 0;
           font-family: inherit;
@@ -197,7 +230,7 @@ function Login() {
         }
 
         .login-input::placeholder {
-          color: #74797a;
+          color: #9ca3af;
         }
 
         .login-input:-webkit-autofill,
@@ -205,8 +238,8 @@ function Login() {
         .login-input:-webkit-autofill:focus,
         .login-input:-webkit-autofill:active {
           -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
-          -webkit-text-fill-color: #111111 !important;
-          caret-color: #111111 !important;
+          -webkit-text-fill-color: #111827 !important;
+          caret-color: #111827 !important;
           transition: background-color 9999s ease-in-out 0s;
         }
 
@@ -216,44 +249,49 @@ function Login() {
           height: 34px;
           border: none;
           background: transparent;
-          color: #2f3331;
+          color: #9ca3af;
           font-size: 20px;
           cursor: pointer;
           padding: 0;
           display: flex;
           align-items: center;
           justify-content: center;
+          transition: color 0.15s ease;
         }
+        .eye-button:hover { color: #475569; }
 
         .forgot-row {
           display: flex;
           justify-content: flex-end;
-          margin-top: -4px;
+          margin-top: -2px;
         }
 
         .forgot-link {
-          color: #111111;
+          color: #2563eb;
           text-decoration: none;
-          font-size: 14px;
+          font-size: 13.5px;
           font-weight: 600;
         }
+        .forgot-link:hover { color: #1d4ed8; }
 
         .main-button {
           width: 100%;
-          height: 52px;
-          margin-top: 10px;
+          height: 48px;
+          margin-top: 6px;
           border: none;
-          border-radius: 999px;
-          background: #1f2320;
-          color: white;
-          font-size: 16px;
+          border-radius: 10px;
+          background: #2563eb;
+          color: #ffffff;
+          font-size: 15px;
           font-weight: 600;
           cursor: pointer;
           font-family: inherit;
+          transition: background 0.15s ease;
         }
 
+        .main-button:hover:not(:disabled) { background: #1d4ed8; }
         .main-button:disabled {
-          opacity: 0.65;
+          background: #93c5fd;
           cursor: not-allowed;
         }
 
@@ -262,8 +300,8 @@ function Login() {
           align-items: center;
           gap: 12px;
           margin: 22px 0;
-          color: #8a8f8c;
-          font-size: 14px;
+          color: #9ca3af;
+          font-size: 13px;
         }
 
         .divider::before,
@@ -271,34 +309,34 @@ function Login() {
           content: "";
           flex: 1;
           height: 1px;
-          background: #e0e0e0;
+          background: #e5e7eb;
         }
 
         .google-button {
           width: 100%;
-          height: 50px;
-          border: 1px solid #dedede;
-          border-radius: 12px;
+          height: 48px;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
           background: #ffffff;
-          color: #1a1a1a;
-          font-size: 15px;
-          font-weight: 500;
+          color: #374151;
+          font-size: 14.5px;
+          font-weight: 600;
           cursor: pointer;
           font-family: inherit;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 10px;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: background 0.15s ease, border-color 0.15s ease;
         }
 
         .google-button:hover {
-          border-color: #b9b9b9;
-          box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.035);
+          background: #f8fafc;
+          border-color: #cbd5e1;
         }
 
         .google-button:disabled {
-          opacity: 0.65;
+          opacity: 0.6;
           cursor: not-allowed;
         }
 
@@ -309,52 +347,59 @@ function Login() {
         }
 
         .register-text {
-          margin: 26px 0 0;
+          margin: 24px 0 0;
           text-align: center;
-          font-size: 15px;
-          color: #1a1a1a;
+          font-size: 14px;
+          color: #6b7280;
         }
 
         .register-link {
-          color: #000000;
+          color: #2563eb;
           font-weight: 700;
           text-decoration: none;
         }
+        .register-link:hover { color: #1d4ed8; }
 
         .message {
-          padding: 11px 13px;
-          border-radius: 12px;
-          font-size: 14px;
-          margin-bottom: 13px;
+          padding: 11px 14px;
+          border-radius: 10px;
+          font-size: 13.5px;
+          font-weight: 500;
+          margin-bottom: 16px;
           text-align: center;
         }
 
         .message.success {
-          background: #edf9f1;
-          color: #157c3b;
+          background: #f0fdf4;
+          color: #16a34a;
+          border: 1px solid #bbf7d0;
         }
 
         .message.error {
-          background: #fff0f0;
-          color: #c62828;
+          background: #fef2f2;
+          color: #dc2626;
+          border: 1px solid #fecaca;
         }
 
         @media (max-width: 480px) {
-          .login-page {
-            padding: 24px;
+          .login-card {
+            padding: 28px 22px 24px;
           }
 
           .login-title {
-            font-size: 33px;
+            font-size: 23px;
           }
         }
       `}</style>
 
       <main className="login-page">
         <section className="login-card">
-          <h1 className="login-title">
-            Mire se erdhe <br /> perseri
-          </h1>
+          <div className="brand">
+            <div className="brand-mark">SB</div>
+            <div className="brand-text">SchoolBridge</div>
+          </div>
+
+          <h1 className="login-title">Mire se erdhe perseri</h1>
 
           <p className="login-subtitle">Hyr per te vazhduar ne SchoolBridge</p>
 
