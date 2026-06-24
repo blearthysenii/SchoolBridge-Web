@@ -432,27 +432,27 @@ function Login() {
           .sb-board-img { height: min(720px, 80vh); max-height: 80vh; }
         }
 
-        /* ── Standard desktop 1200–1599px ── */
-        @media (max-width: 1599px) and (min-width: 1201px) {
-          .sb-board-img { height: 660px; }
-        }
-
-        /* ── Large laptop 1024–1200px ── */
-        @media (max-width: 1200px) {
-          .sb-left     { width: 540px; padding-left: 72px; }
-          .sb-card     { width: 430px; padding: 52px 48px 44px; }
-          .sb-wordmark { font-size: 40px; }
+        /* ── Standard desktop 1231–1599px ── */
+        @media (max-width: 1599px) and (min-width: 1231px) {
           .sb-board-img { height: min(600px, 75vh); max-height: 75vh; }
         }
 
-        /* ── Below 1024px: single column, login centred, hide image ── */
-        @media (max-width: 1024px) {
+        /* ── Below 1230px: single column, login centred, hide image ── */
+        @media (max-width: 1230px) {
           .sb-frame       { padding: 0; overflow-y: auto; height: auto; min-height: 100vh; min-height: 100dvh; }
           .sb-frame-inner { border-radius: 0; overflow-y: auto; border: none; box-shadow: none; clip-path: none; }
+          .sb-illustration { display: none; }
 
           .sb-nav {
             padding: 20px 24px 0;
             justify-content: center;
+          }
+          /* Hide nav links on mobile */
+          .sb-nav-links { display: none; }
+          /* Remove card shadow and border on mobile */
+          .sb-card {
+            box-shadow: none !important;
+            border: none;
           }
           .sb-nav-links { gap: 32px; }
           .sb-nav-links a { font-size: 13.5px; }
@@ -460,6 +460,7 @@ function Login() {
           .sb-body {
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             overflow: visible;
             padding-bottom: 48px;
           }
@@ -482,7 +483,12 @@ function Login() {
             width: 100%;
             max-width: 440px;
             padding: 52px 44px 44px;
+            box-shadow: none;
+            border: none;
           }
+          /* Prevent iOS zoom on input focus */
+          .sb-input { font-size: 16px; }
+          .sb-input::placeholder { font-size: 16px; }
 
           /* Hide whiteboard below 1024px */
           .sb-illustration { display: none; }
@@ -499,7 +505,7 @@ function Login() {
           .sb-wordmark    { font-size: 20px; letter-spacing: 0.15em; margin-bottom: 20px; }
           .sb-card        { padding: 36px 22px 30px; }
           .sb-field       { margin-bottom: 30px; }
-          .sb-input       { font-size: 14px; padding: 6px 26px 8px; }
+          .sb-input       { font-size: 16px; padding: 6px 26px 8px; }
           .sb-input::placeholder { font-size: 13.5px; }
           .sb-login-btn   { width: 120px; height: 42px; font-size: 14px; }
           .sb-secondary-actions { margin-top: 20px; gap: 12px; }
@@ -518,6 +524,7 @@ function Login() {
           .sb-wordmark    { font-size: 17px; letter-spacing: 0.12em; }
           .sb-card        { padding: 28px 16px 26px; }
           .sb-field       { margin-bottom: 24px; }
+          .sb-input       { font-size: 16px; }
           .sb-login-btn   { width: 114px; height: 40px; font-size: 13.5px; }
           .sb-signup-link { font-size: 13.5px; }
           .sb-google-btn  { height: 40px; font-size: 13px; gap: 7px; }
