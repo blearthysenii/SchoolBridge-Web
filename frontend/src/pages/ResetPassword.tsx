@@ -72,7 +72,7 @@ function ResetPassword() {
       setMessage("Fjalëkalimi u rivendos me sukses.");
 
       setTimeout(() => {
-        navigate("/");
+        navigate("/login");
       }, 1000);
     } catch (err: any) {
       setError(err.response?.data?.detail || "Rivendosja e fjalëkalimit dështoi.");
@@ -750,7 +750,7 @@ function ResetPassword() {
                   </form>
 
                   <p className="sb-back">
-                    <Link to="/">Kthehu te hyrja</Link>
+                    <Link to="/login">Kthehu te hyrja</Link>
                   </p>
                 </div>
               </div>

@@ -98,7 +98,7 @@ function Register() {
     try {
       await api.post("/users/verify-email", { email, code });
       setMessage("Llogaria u verifikua me sukses!");
-      setTimeout(() => navigate("/"), 500);
+      setTimeout(() => navigate("/login"), 500);
     } catch (err: any) {
       setError(err.response?.data?.detail || "Kodi i verifikimit nuk është i vlefshëm.");
       setLoading(false);
@@ -702,7 +702,7 @@ function Register() {
 
                       <p className="sb-bottom-text" style={{ marginTop: 20 }}>
                         Ke llogari?{" "}
-                        <Link to="/" className="sb-bottom-link">Kyçu</Link>
+                        <Link to="/login" className="sb-bottom-link">Kyçu</Link>
                       </p>
 
                     </form>

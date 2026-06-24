@@ -394,7 +394,7 @@ function ForgotPassword() {
                   </form>
 
                   <p className="sb-bottom-text">
-                    <Link to="/" className="sb-bottom-link">Kthehu te hyrja</Link>
+                    <Link to="/login" className="sb-bottom-link">Kthehu te hyrja</Link>
                   </p>
                 </div>
               </div>

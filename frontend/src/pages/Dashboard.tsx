@@ -186,7 +186,7 @@ function Dashboard() {
         await refreshDashboard();
       } catch {
         localStorage.removeItem("token");
-        navigate("/");
+        navigate("/login");
       }
     };
     getUser();
@@ -220,7 +220,7 @@ function Dashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/");
+    navigate("/login");
   };
 
   const navItems = [

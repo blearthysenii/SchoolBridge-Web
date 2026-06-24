@@ -49,7 +49,7 @@ export default function Layout({ children, title, subtitle, backTo, backLabel, u
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/");
+    navigate("/login");
   };
 
   const initials = user?.full_name
