@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import tableImg from "../images/table.png";
+import { useToast } from "../components/ToastProvider";
 
 function CompleteGoogleRegister() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [fullName, setFullName] = useState(
     localStorage.getItem("google_name") || ""
@@ -27,22 +29,22 @@ function CompleteGoogleRegister() {
     e.preventDefault();
 
     if (!fullName.trim()) {
-      alert("Please enter your full name");
+      showToast("error", "Ju lutemi shkruani emrin e plotë.");
       return;
     }
 
     if (!dateBirth) {
-      alert("Please select your date of birth");
+      showToast("error", "Ju lutemi zgjidhni datëlindjen.");
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      showToast("error", "Fjalëkalimet nuk përputhen.");
       return;
     }
 
     if (password.length < 6) {
-      alert("Password must be at least 6 characters");
+      showToast("error", "Fjalëkalimi duhet të ketë të paktën 6 karaktere.");
       return;
     }
 
@@ -65,7 +67,7 @@ function CompleteGoogleRegister() {
       navigate("/dashboard");
     } catch (error) {
       console.log(error);
-      alert("Registration failed");
+      showToast("error", "Dështoi regjistrimi. Provoni përsëri.");
     }
   };
 

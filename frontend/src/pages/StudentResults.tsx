@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
+import ConfirmDialog from "../components/ConfirmDialog";
+import { useToast } from "../components/ToastProvider";
+
 import {
   createResult,
   getResultsByStudent,
@@ -149,6 +152,7 @@ function StatCard({ label, value, sub, accent }: { label: string; value: string 
 function StudentResults() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [results, setResults] = useState<Result[]>([]);
   const [questions, setQuestions] = useState<StudentQuestion[]>([]);
@@ -161,6 +165,7 @@ function StudentResults() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Result | null>(null);
   const [activeTab, setActiveTab] = useState<"analytics" | "concepts" | "gaps" | "results">("analytics");
 
   const loadResults = async () => {
@@ -209,9 +214,16 @@ function StudentResults() {
 
   const handleDeleteResult = async (resultId: number) => {
     setDeletingId(resultId);
-    try { await deleteResult(resultId); await refreshData(); }
-    catch { alert("Dështoi fshirja e rezultatit."); }
-    finally { setDeletingId(null); }
+    try {
+      await deleteResult(resultId);
+      await refreshData();
+      showToast("success", "Rezultati u fshi me sukses.");
+    } catch {
+      showToast("error", "Dështoi fshirja e rezultatit.");
+    } finally {
+      setDeletingId(null);
+      setPendingDelete(null);
+    }
   };
 
   const tabs = [
@@ -302,6 +314,7 @@ function StudentResults() {
         .section-hdr-sub { font-size: 12.5px; color: #94a3b8; margin-top: 1px; }
 
         /* TABLE */
+        .table-scroll { overflow-x: auto; border-radius: 10px; }
         .data-table {
           width: 100%; border-collapse: collapse;
           background: #fff; border: 1px solid #e2e8f0;
@@ -534,6 +547,7 @@ function StudentResults() {
               </div>
             </div>
             {analytics && analytics.concepts.length > 0 ? (
+              <div className="table-scroll">
               <table className="data-table">
                 <thead>
                   <tr>
@@ -567,6 +581,7 @@ function StudentResults() {
                   ))}
                 </tbody>
               </table>
+              </div>
             ) : (
               <div className="empty-state">
                 <strong>Nuk ka të dhëna ende</strong>
@@ -653,6 +668,7 @@ function StudentResults() {
               </div>
             </div>
             {results.length > 0 ? (
+              <div className="table-scroll">
               <table className="data-table">
                 <thead>
                   <tr>
@@ -684,7 +700,7 @@ function StudentResults() {
                       <td className="td-actions">
                         <button
                           className="btn-delete"
-                          onClick={() => handleDeleteResult(r.id)}
+                          onClick={() => setPendingDelete(r)}
                           disabled={deletingId === r.id}
                         >
                           <IconTrash />
@@ -695,6 +711,7 @@ function StudentResults() {
                   ))}
                 </tbody>
               </table>
+              </div>
             ) : (
               <div className="empty-state">
                 <strong>Asnjë rezultat ende</strong>
@@ -704,6 +721,18 @@ function StudentResults() {
           </>
         )}
       </div>
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title="Fshi rezultatin"
+          message={`Të fshihet rezultati për pyetjen "${pendingDelete.question_text}"? Ky veprim nuk mund të kthehet.`}
+          confirmLabel="Fshi"
+          variant="danger"
+          submitting={deletingId === pendingDelete.id}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => handleDeleteResult(pendingDelete.id)}
+        />
+      )}
 
       {/* ── MODAL ── */}
       {modalOpen && (

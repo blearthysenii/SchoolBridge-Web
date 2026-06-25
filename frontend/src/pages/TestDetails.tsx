@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 
 import api from "../services/api";
+import ConfirmDialog from "../components/ConfirmDialog";
+import { useToast } from "../components/ToastProvider";
 
 import {
   getQuestionsByTest,
@@ -133,6 +135,7 @@ function IconPreview() {
 function TestDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [test, setTest] = useState<Test | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -157,6 +160,7 @@ function TestDetails() {
   const [formError, setFormError] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [editingQuestionId, setEditingQuestionId] = useState<number | null>(null);
+  const [pendingDeleteQuestionId, setPendingDeleteQuestionId] = useState<number | null>(null);
 
   const resetForm = () => {
     setQuestionText("");
@@ -360,10 +364,12 @@ function TestDetails() {
     try {
       await deleteQuestion(questionId);
       await loadQuestions();
+      showToast("success", "Pyetja u fshi me sukses.");
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Dështoi fshirja e pyetjes.");
+      showToast("error", err.response?.data?.detail || "Dështoi fshirja e pyetjes.");
     } finally {
       setDeletingId(null);
+      setPendingDeleteQuestionId(null);
     }
   };
 
@@ -375,8 +381,9 @@ function TestDetails() {
     try {
       const response = await api.put(`/tests/${id}/status`, { status });
       setTest(response.data);
+      showToast("success", "Statusi i testit u ruajt me sukses.");
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Dështoi ruajtja e statusit të testit.");
+      showToast("error", err.response?.data?.detail || "Dështoi ruajtja e statusit të testit.");
     } finally {
       setStatusSaving(false);
     }
@@ -401,7 +408,7 @@ function TestDetails() {
     link.remove();
     window.URL.revokeObjectURL(fileURL);
   } catch (err: any) {
-    alert(err.response?.data?.detail || "Dështoi shkarkimi i PDF-it.");
+    showToast("error", err.response?.data?.detail || "Dështoi shkarkimi i PDF-it.");
   }
 };
 
@@ -1246,7 +1253,7 @@ function TestDetails() {
 
                       <button
                         className="btn-danger-soft"
-                        onClick={() => handleDeleteQuestion(q.id)}
+                        onClick={() => setPendingDeleteQuestionId(q.id)}
                         disabled={deletingId === q.id}
                         title="Fshi pyetjen"
                       >
@@ -1603,6 +1610,18 @@ function TestDetails() {
             </form>
           </div>
         </div>
+      )}
+
+      {pendingDeleteQuestionId !== null && (
+        <ConfirmDialog
+          title="Fshi pyetjen"
+          message="Të fshihet kjo pyetje? Ky veprim nuk mund të kthehet."
+          confirmLabel="Fshi"
+          variant="danger"
+          submitting={deletingId === pendingDeleteQuestionId}
+          onCancel={() => setPendingDeleteQuestionId(null)}
+          onConfirm={() => handleDeleteQuestion(pendingDeleteQuestionId)}
+        />
       )}
     </>
   );
