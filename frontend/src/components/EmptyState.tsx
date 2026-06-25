@@ -22,12 +22,12 @@ export default function EmptyState({ icon, title, description, action }: EmptySt
           width: "56px",
           height: "56px",
           borderRadius: "14px",
-          background: "rgba(15, 118, 110, 0.08)",
+          background: "rgba(37, 99, 235, 0.08)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           marginBottom: "16px",
-          color: "#0F766E",
+          color: "#2563EB",
         }}
       >
         {icon || (

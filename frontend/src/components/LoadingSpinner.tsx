@@ -20,8 +20,8 @@ export default function LoadingSpinner({ size = 32, text, fullPage }: LoadingSpi
         style={{
           width: size,
           height: size,
-          border: `3px solid rgba(15, 118, 110, 0.12)`,
-          borderTopColor: "#0F766E",
+          border: `3px solid rgba(37, 99, 235, 0.12)`,
+          borderTopColor: "#2563EB",
           borderRadius: "50%",
           animation: "sb-spin 0.75s linear infinite",
           flexShrink: 0,

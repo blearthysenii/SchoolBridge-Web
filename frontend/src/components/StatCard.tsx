@@ -5,7 +5,7 @@ type StatCardProps = {
   color?: string;
 };
 
-export default function StatCard({ label, value, icon, color = "#0F766E" }: StatCardProps) {
+export default function StatCard({ label, value, icon, color = "#2563EB" }: StatCardProps) {
   return (
     <div
       style={{
