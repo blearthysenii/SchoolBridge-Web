@@ -6,6 +6,7 @@ import Layout from "../components/Layout";
 import Alert from "../components/Alert";
 import EmptyState from "../components/EmptyState";
 import LoadingSpinner from "../components/LoadingSpinner";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 import { getArchivedTests, updateTestStatus } from "../services/testService";
 import { getClassrooms } from "../services/classroomService";
@@ -36,6 +37,7 @@ export default function ArchivedTests() {
   const [loading, setLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<number | null>(null);
   const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [pendingTest, setPendingTest] = useState<Test | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -81,7 +83,6 @@ export default function ArchivedTests() {
   const subjectName = (id: number) => subjects.find((s) => s.id === id)?.name ?? "—";
 
   const handleRestore = async (t: Test) => {
-    if (!window.confirm(`Të rikthehet testi "${t.title}" si draft?`)) return;
     setRestoringId(t.id);
     try {
       await updateTestStatus(t.id, "draft");
@@ -91,6 +92,7 @@ export default function ArchivedTests() {
       setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi rikthimi." });
     } finally {
       setRestoringId(null);
+      setPendingTest(null);
     }
   };
 
@@ -106,35 +108,35 @@ export default function ArchivedTests() {
           description="Testet e arkivuara (që kanë rezultate të lidhura) do të shfaqen këtu."
         />
       ) : (
-        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: "10px", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="sb-table-wrap">
+          <table className="sb-table">
             <thead>
-              <tr style={{ background: "#F8FAFC" }}>
-                <th style={th}>Titulli i testit</th>
-                <th style={th}>Klasa</th>
-                <th style={th}>Lënda</th>
-                <th style={th}></th>
+              <tr>
+                <th>Titulli i testit</th>
+                <th>Klasa</th>
+                <th>Lënda</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {tests.map((t) => (
-                <tr key={t.id} style={{ borderTop: "1px solid #F1F5F9" }}>
-                  <td style={td}>
-                    <Link to={`/tests/${t.id}`} style={{ color: "#2563EB", fontWeight: 600, textDecoration: "none" }}>
+                <tr key={t.id}>
+                  <td>
+                    <Link to={`/tests/${t.id}`} className="sb-td-link">
                       {t.title}
                     </Link>
                   </td>
-                  <td style={td}>
-                    <Link to={`/classrooms/${t.classroom_id}`} style={{ color: "#64748B", textDecoration: "none" }}>
+                  <td className="sb-td-meta">
+                    <Link to={`/classrooms/${t.classroom_id}`} className="sb-td-link" style={{ color: "#64748B" }}>
                       {classroomName(t.classroom_id)}
                     </Link>
                   </td>
-                  <td style={{ ...td, color: "#64748B" }}>{subjectName(t.subject_id)}</td>
-                  <td style={{ ...td, textAlign: "right" }}>
+                  <td className="sb-td-meta">{subjectName(t.subject_id)}</td>
+                  <td className="sb-td-actions">
                     <button
-                      onClick={() => handleRestore(t)}
+                      onClick={() => setPendingTest(t)}
                       disabled={restoringId === t.id}
-                      style={btnRestore}
+                      className="sb-btn sb-btn-restore"
                     >
                       <IconRestore />
                       {restoringId === t.id ? "…" : "Rikthe"}
@@ -146,37 +148,17 @@ export default function ArchivedTests() {
           </table>
         </div>
       )}
+
+      {pendingTest && (
+        <ConfirmDialog
+          title="Rikthe testin"
+          message={`Të rikthehet testi "${pendingTest.title}" si draft?`}
+          confirmLabel="Rikthe"
+          submitting={restoringId === pendingTest.id}
+          onCancel={() => setPendingTest(null)}
+          onConfirm={() => handleRestore(pendingTest)}
+        />
+      )}
     </Layout>
   );
 }
-
-const th: React.CSSProperties = {
-  textAlign: "left",
-  fontSize: "11.5px",
-  fontWeight: 600,
-  color: "#64748B",
-  textTransform: "uppercase",
-  letterSpacing: "0.5px",
-  padding: "10px 16px",
-};
-
-const td: React.CSSProperties = {
-  padding: "12px 16px",
-  fontSize: "13.5px",
-  color: "#334155",
-  verticalAlign: "middle",
-};
-
-const btnRestore: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "6px",
-  padding: "6px 12px",
-  borderRadius: "6px",
-  fontSize: "12.5px",
-  fontWeight: 600,
-  color: "#0F766E",
-  background: "#ECFDF5",
-  border: "1px solid #A7F3D0",
-  cursor: "pointer",
-};

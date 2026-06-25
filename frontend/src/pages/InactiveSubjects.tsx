@@ -6,6 +6,7 @@ import Layout from "../components/Layout";
 import Alert from "../components/Alert";
 import EmptyState from "../components/EmptyState";
 import LoadingSpinner from "../components/LoadingSpinner";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 import { getInactiveSubjects, restoreSubject } from "../services/subjectService";
 import { getClassrooms } from "../services/classroomService";
@@ -33,6 +34,7 @@ export default function InactiveSubjects() {
   const [loading, setLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<number | null>(null);
   const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [pendingSubject, setPendingSubject] = useState<Subject | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -72,7 +74,6 @@ export default function InactiveSubjects() {
   const classroomName = (id: number) => classrooms.find((c) => c.id === id)?.name ?? "—";
 
   const handleRestore = async (s: Subject) => {
-    if (!window.confirm(`Të riaktivizohet lënda "${s.name}"?`)) return;
     setRestoringId(s.id);
     try {
       await restoreSubject(s.id);
@@ -82,6 +83,7 @@ export default function InactiveSubjects() {
       setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi riaktivizimi." });
     } finally {
       setRestoringId(null);
+      setPendingSubject(null);
     }
   };
 
@@ -97,29 +99,29 @@ export default function InactiveSubjects() {
           description="Lëndët e çaktivizuara nga klasat tuaja do të shfaqen këtu."
         />
       ) : (
-        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: "10px", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="sb-table-wrap">
+          <table className="sb-table">
             <thead>
-              <tr style={{ background: "#F8FAFC" }}>
-                <th style={th}>Emri i lëndës</th>
-                <th style={th}>Klasa</th>
-                <th style={th}></th>
+              <tr>
+                <th>Emri i lëndës</th>
+                <th>Klasa</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {subjects.map((s) => (
-                <tr key={s.id} style={{ borderTop: "1px solid #F1F5F9" }}>
-                  <td style={{ ...td, fontWeight: 600, color: "#0F172A" }}>{s.name}</td>
-                  <td style={td}>
-                    <Link to={`/classrooms/${s.classroom_id}`} style={{ color: "#64748B", textDecoration: "none" }}>
+                <tr key={s.id}>
+                  <td className="sb-td-name">{s.name}</td>
+                  <td className="sb-td-meta">
+                    <Link to={`/classrooms/${s.classroom_id}`} className="sb-td-link" style={{ color: "#64748B" }}>
                       {classroomName(s.classroom_id)}
                     </Link>
                   </td>
-                  <td style={{ ...td, textAlign: "right" }}>
+                  <td className="sb-td-actions">
                     <button
-                      onClick={() => handleRestore(s)}
+                      onClick={() => setPendingSubject(s)}
                       disabled={restoringId === s.id}
-                      style={btnRestore}
+                      className="sb-btn sb-btn-restore"
                     >
                       <IconRestore />
                       {restoringId === s.id ? "…" : "Riaktivizo"}
@@ -131,37 +133,17 @@ export default function InactiveSubjects() {
           </table>
         </div>
       )}
+
+      {pendingSubject && (
+        <ConfirmDialog
+          title="Riaktivizo lëndën"
+          message={`Të riaktivizohet lënda "${pendingSubject.name}"?`}
+          confirmLabel="Riaktivizo"
+          submitting={restoringId === pendingSubject.id}
+          onCancel={() => setPendingSubject(null)}
+          onConfirm={() => handleRestore(pendingSubject)}
+        />
+      )}
     </Layout>
   );
 }
-
-const th: React.CSSProperties = {
-  textAlign: "left",
-  fontSize: "11.5px",
-  fontWeight: 600,
-  color: "#64748B",
-  textTransform: "uppercase",
-  letterSpacing: "0.5px",
-  padding: "10px 16px",
-};
-
-const td: React.CSSProperties = {
-  padding: "12px 16px",
-  fontSize: "13.5px",
-  color: "#334155",
-  verticalAlign: "middle",
-};
-
-const btnRestore: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "6px",
-  padding: "6px 12px",
-  borderRadius: "6px",
-  fontSize: "12.5px",
-  fontWeight: 600,
-  color: "#0F766E",
-  background: "#ECFDF5",
-  border: "1px solid #A7F3D0",
-  cursor: "pointer",
-};

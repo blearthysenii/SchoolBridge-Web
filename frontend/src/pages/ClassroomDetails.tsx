@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 
+import api from "../services/api";
+import Layout from "../components/Layout";
 import Alert from "../components/Alert";
+import EmptyState from "../components/EmptyState";
+import LoadingSpinner from "../components/LoadingSpinner";
+import ConfirmDialog from "../components/ConfirmDialog";
+
+import { getClassrooms } from "../services/classroomService";
 
 import {
   createStudent,
@@ -30,24 +37,31 @@ import {
   deleteTest,
 } from "../services/testService";
 
+type User = { full_name: string; email: string; role: string };
+
+type Classroom = { id: number; name: string; grade: number };
+
 type Student = {
   id: number;
   full_name: string;
   personal_number: string;
   date_birth: string | null;
   classroom_id: number;
+  is_active?: boolean;
 };
 
 type Subject = {
   id: number;
   name: string;
   classroom_id: number;
+  is_active?: boolean;
 };
 
 type Concept = {
   id: number;
   name: string;
   subject_id: number;
+  is_active?: boolean;
 };
 
 type Test = {
@@ -55,6 +69,7 @@ type Test = {
   title: string;
   classroom_id: number;
   subject_id: number;
+  status?: "draft" | "published" | "archived";
 };
 
 type ModalType =
@@ -67,14 +82,12 @@ type ModalType =
   | "editConcept"
   | null;
 
-// ── Icons ──────────────────────────────────────────────────────────────────────
-function IconBack() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="15 18 9 12 15 6" />
-    </svg>
-  );
-}
+type PendingAction =
+  | { kind: "deactivateStudent"; id: number; label: string }
+  | { kind: "deleteSubject"; id: number; label: string }
+  | { kind: "deleteConcept"; id: number; label: string }
+  | { kind: "deleteTest"; id: number; label: string };
+
 function IconPlus() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -86,16 +99,6 @@ function IconClose() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
-function IconTrash() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-      <path d="M10 11v6M14 11v6" />
-      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
     </svg>
   );
 }
@@ -151,15 +154,7 @@ function IconTest() {
     </svg>
   );
 }
-function IconChevron() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="9 18 15 12 9 6" />
-    </svg>
-  );
-}
 
-// ── Shared sub-components ──────────────────────────────────────────────────────
 function SectionHeader({
   icon,
   title,
@@ -174,27 +169,18 @@ function SectionHeader({
   addLabel: string;
 }) {
   return (
-    <div className="section-header">
-      <div className="section-header-left">
-        <div className="section-icon">{icon}</div>
+    <div className="sb-section-header">
+      <div className="sb-section-header-left">
+        <div className="sb-section-icon">{icon}</div>
         <div>
-          <div className="section-title-text">{title}</div>
-          <div className="section-count">{count} gjithsej</div>
+          <div className="sb-section-title">{title}</div>
+          <div className="sb-section-count">{count} gjithsej</div>
         </div>
       </div>
-      <button className="btn-primary" onClick={onAdd}>
+      <button className="sb-btn sb-btn-primary" onClick={onAdd}>
         <IconPlus />
         {addLabel}
       </button>
-    </div>
-  );
-}
-
-function EmptyState({ text }: { text: string }) {
-  return (
-    <div className="empty-state">
-      <strong>Asgjë këtu ende</strong>
-      {text}
     </div>
   );
 }
@@ -223,18 +209,18 @@ function Modal({
   }, [onClose]);
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        <div className="modal-header">
-          <div className="modal-title">{title}</div>
-          <button className="modal-close" onClick={onClose}><IconClose /></button>
+    <div className="sb-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="sb-modal">
+        <div className="sb-modal-header">
+          <div className="sb-modal-title">{title}</div>
+          <button className="sb-modal-close" onClick={onClose} aria-label="Mbyll"><IconClose /></button>
         </div>
         <form onSubmit={onSubmit}>
           {children}
-          {error && <div className="form-error">{error}</div>}
-          <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={onClose}>Anulo</button>
-            <button type="submit" className="btn-primary" disabled={submitting}>
+          {error && <div className="sb-form-error">{error}</div>}
+          <div className="sb-modal-actions">
+            <button type="button" className="sb-btn sb-btn-secondary" onClick={onClose}>Anulo</button>
+            <button type="submit" className="sb-btn sb-btn-primary" disabled={submitting}>
               {submitting ? "Duke ruajtur…" : submitLabel}
             </button>
           </div>
@@ -244,15 +230,17 @@ function Modal({
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
 function ClassroomDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const [user, setUser] = useState<User | null>(null);
+  const [classroom, setClassroom] = useState<Classroom | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [tests, setTests] = useState<Test[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // form state
   const [fullName, setFullName] = useState("");
@@ -274,34 +262,55 @@ function ClassroomDetails() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [banner, setBanner] = useState<{ type: "success" | "info" | "error"; text: string } | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
   // ── Loaders ──
+  // Active-only views must never surface soft-deleted/archived records, even if
+  // the backend response happens to include them — filter defensively here.
   const loadStudents = async () => {
     if (!id) return;
     const r = await getStudentsByClassroom(id);
-    setStudents(r.data);
+    setStudents(r.data.filter((s: Student) => s.is_active !== false));
   };
   const loadSubjects = async () => {
     if (!id) return;
     const r = await getSubjectsByClassroom(id);
-    setSubjects(r.data);
+    setSubjects(r.data.filter((s: Subject) => s.is_active !== false));
   };
   const loadConcepts = async (subjectId: number) => {
     const r = await getConceptsBySubject(subjectId);
-    setConcepts(r.data);
+    setConcepts(r.data.filter((c: Concept) => c.is_active !== false));
   };
   const loadTests = async () => {
     if (!id) return;
     const r = await getTestsByClassroom(Number(id));
-    setTests(r.data);
+    setTests(r.data.filter((t: Test) => t.status !== "archived"));
+  };
+  const loadClassroom = async () => {
+    const r = await getClassrooms();
+    const found = r.data.find((c: Classroom) => c.id === Number(id));
+    setClassroom(found ?? null);
   };
   const refreshData = async () => {
-    await loadStudents();
-    await loadSubjects();
-    await loadTests();
+    await Promise.all([loadClassroom(), loadStudents(), loadSubjects(), loadTests()]);
   };
 
-  useEffect(() => { refreshData(); }, [id]);
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await api.get("/users/me", { headers: { Authorization: `Bearer ${token}` } });
+        setUser(res.data);
+        await refreshData();
+      } catch {
+        localStorage.removeItem("token");
+        navigate("/login");
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
+  }, [id, navigate]);
 
   useEffect(() => {
     if (!banner) return;
@@ -500,6 +509,16 @@ function ClassroomDetails() {
     finally { setDeletingId(null); }
   };
 
+  const runPendingAction = async () => {
+    if (!pendingAction) return;
+    const { kind, id: targetId } = pendingAction;
+    setPendingAction(null);
+    if (kind === "deactivateStudent") await handleDeactivateStudent(targetId);
+    if (kind === "deleteSubject") await handleDeleteSubject(targetId);
+    if (kind === "deleteConcept") await handleDeleteConcept(targetId);
+    if (kind === "deleteTest") await handleDeleteTest(targetId);
+  };
+
   const tabs: { key: typeof activeTab; label: string; count: number }[] = [
     { key: "students", label: "Nxënësit", count: students.length },
     { key: "subjects", label: "Lëndët", count: subjects.length },
@@ -508,710 +527,380 @@ function ClassroomDetails() {
   ];
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; }
-        a { text-decoration: none; color: inherit; }
+    <Layout
+      title={classroom ? classroom.name : "Detajet e klasës"}
+      subtitle={classroom ? `Viti ${classroom.grade} · Menaxhoni nxënësit, lëndët, konceptet dhe testet` : undefined}
+      backTo="/dashboard"
+      backLabel="Paneli"
+      user={user}
+    >
+      {banner && (
+        <Alert type={banner.type} message={banner.text} onClose={() => setBanner(null)} />
+      )}
 
-        /* TOPBAR */
-        .topbar {
-          background: #fff; border-bottom: 1px solid #e2e8f0;
-          padding: 0 28px; height: 56px;
-          display: flex; align-items: center; justify-content: space-between;
-          position: sticky; top: 0; z-index: 50;
-        }
-        .topbar-left { display: flex; align-items: center; gap: 10px; }
-        .back-btn {
-          display: flex; align-items: center; gap: 6px;
-          background: none; border: 1px solid #e2e8f0; border-radius: 7px;
-          padding: 6px 12px; font-size: 13px; font-weight: 500; color: #475569;
-          cursor: pointer; transition: background 0.12s, border-color 0.12s;
-        }
-        .back-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
-        .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13.5px; }
-        .breadcrumb-link { color: #64748b; font-weight: 500; }
-        .breadcrumb-link:hover { color: #2563eb; }
-        .breadcrumb-sep { color: #cbd5e1; }
-        .breadcrumb-current { color: #0f172a; font-weight: 600; }
-
-        /* PAGE BODY */
-        .page { max-width: 900px; margin: 0 auto; padding: 28px; }
-
-        /* PAGE TITLE ROW */
-        .page-title-row {
-          display: flex; align-items: flex-start; justify-content: space-between;
-          margin-bottom: 24px; gap: 12px;
-        }
-        .page-title { font-size: 22px; font-weight: 700; color: #0f172a; letter-spacing: -0.4px; }
-        .page-subtitle { font-size: 13px; color: #94a3b8; margin-top: 3px; }
-
-        /* TABS */
-        .tabs {
-          display: flex; gap: 0;
-          border-bottom: 1px solid #e2e8f0;
-          margin-bottom: 24px;
-          overflow-x: auto;
-        }
-        .tab {
-          display: flex; align-items: center; gap: 7px;
-          padding: 10px 18px; font-size: 13.5px; font-weight: 500; color: #64748b;
-          border-bottom: 2px solid transparent; margin-bottom: -1px;
-          cursor: pointer; white-space: nowrap; transition: color 0.12s;
-          background: none; border-top: none; border-left: none; border-right: none;
-        }
-        .tab:hover { color: #0f172a; }
-        .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
-        .tab-badge {
-          background: #f1f5f9; color: #64748b;
-          font-size: 11px; font-weight: 600;
-          padding: 1px 6px; border-radius: 10px;
-          min-width: 20px; text-align: center;
-        }
-        .tab.active .tab-badge { background: #eff6ff; color: #2563eb; }
-
-        /* SECTION HEADER */
-        .section-header {
-          display: flex; align-items: center; justify-content: space-between;
-          margin-bottom: 16px; gap: 12px;
-        }
-        .section-header-left { display: flex; align-items: center; gap: 12px; }
-        .section-icon {
-          width: 38px; height: 38px; border-radius: 8px;
-          background: #eff6ff; color: #2563eb;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .section-title-text { font-size: 15px; font-weight: 700; color: #0f172a; }
-        .section-count { font-size: 12px; color: #94a3b8; margin-top: 1px; }
-
-        /* TABLE */
-        .data-table {
-          width: 100%; border-collapse: collapse;
-          background: #fff; border: 1px solid #e2e8f0;
-          border-radius: 10px; overflow: hidden;
-        }
-        .data-table th {
-          text-align: left; font-size: 11.5px; font-weight: 600;
-          color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;
-          padding: 10px 16px; background: #f8fafc;
-          border-bottom: 1px solid #e2e8f0;
-        }
-        .data-table td {
-          padding: 12px 16px; font-size: 13.5px; color: #334155;
-          border-bottom: 1px solid #f1f5f9; vertical-align: middle;
-        }
-        .data-table tr:last-child td { border-bottom: none; }
-        .data-table tr:hover td { background: #fafbff; }
-
-        .td-name { font-weight: 600; color: #0f172a; }
-        .td-link { font-weight: 600; color: #2563eb; }
-        .td-link:hover { text-decoration: underline; }
-        .td-meta { font-size: 12.5px; color: #94a3b8; }
-        .td-actions { text-align: right; }
-
-        .btn-delete {
-          display: inline-flex; align-items: center; gap: 5px;
-          padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
-          color: #64748b; background: none; border: 1px solid #e2e8f0;
-          cursor: pointer; transition: all 0.12s;
-        }
-        .btn-delete:hover { background: #fff1f2; color: #e11d48; border-color: #fecdd3; }
-        .btn-delete:disabled { opacity: 0.4; cursor: not-allowed; }
-
-        .btn-edit {
-          display: inline-flex; align-items: center; gap: 5px;
-          padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
-          color: #64748b; background: none; border: 1px solid #e2e8f0;
-          cursor: pointer; transition: all 0.12s; margin-right: 6px;
-        }
-        .btn-edit:hover { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
-        .btn-edit:disabled { opacity: 0.4; cursor: not-allowed; }
-
-        .btn-archive {
-          display: inline-flex; align-items: center; gap: 5px;
-          padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
-          color: #64748b; background: none; border: 1px solid #e2e8f0;
-          cursor: pointer; transition: all 0.12s; margin-right: 6px;
-        }
-        .btn-archive:hover { background: #fffbeb; color: #b45309; border-color: #fde68a; }
-        .btn-archive:disabled { opacity: 0.4; cursor: not-allowed; }
-
-        .inactive-link {
-          display: inline-flex; align-items: center; gap: 6px;
-          font-size: 12.5px; font-weight: 600; color: #64748b;
-          padding: 7px 12px; border-radius: 7px; border: 1px solid #e2e8f0;
-          background: #fff; cursor: pointer; transition: all 0.12s;
-        }
-        .inactive-link:hover { background: #f1f5f9; color: #0f172a; }
-        .section-actions-row { display: flex; justify-content: flex-end; margin-bottom: 12px; }
-
-        /* SUBJECT SELECTOR for concepts tab */
-        .subject-filter {
-          display: flex; align-items: center; gap: 10px;
-          margin-bottom: 16px; padding: 12px 14px;
-          background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
-        }
-        .subject-filter label { font-size: 12.5px; font-weight: 600; color: #64748b; white-space: nowrap; }
-        .subject-filter select {
-          flex: 1; padding: 7px 10px; border: 1px solid #e2e8f0; border-radius: 6px;
-          font-size: 13px; color: #0f172a; background: #f8fafc;
-          outline: none; transition: border-color 0.12s;
-        }
-        .subject-filter select:focus { border-color: #93c5fd; }
-
-        /* EMPTY */
-        .empty-state {
-          background: #f8fafc; border: 1px dashed #e2e8f0;
-          border-radius: 10px; padding: 36px 24px;
-          text-align: center; color: #94a3b8; font-size: 13.5px;
-        }
-        .empty-state strong { display: block; font-size: 14px; color: #64748b; margin-bottom: 4px; }
-
-        /* BUTTONS */
-        .btn-primary {
-          display: inline-flex; align-items: center; gap: 6px;
-          background: #2563eb; color: #fff;
-          border: none; border-radius: 7px;
-          padding: 8px 14px; font-size: 13px; font-weight: 600;
-          cursor: pointer; transition: background 0.12s;
-          white-space: nowrap;
-        }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
-        .btn-secondary {
-          padding: 8px 16px; border-radius: 7px;
-          font-size: 13px; font-weight: 600;
-          background: #f1f5f9; color: #475569;
-          border: none; cursor: pointer; transition: background 0.12s;
-        }
-        .btn-secondary:hover { background: #e2e8f0; }
-
-        /* MODAL */
-        .modal-overlay {
-          position: fixed; inset: 0;
-          background: rgba(15,23,42,0.35);
-          display: flex; align-items: center; justify-content: center;
-          z-index: 200; padding: 16px;
-        }
-        .modal {
-          background: #fff; border-radius: 12px;
-          width: 100%; max-width: 420px;
-          box-shadow: 0 12px 40px rgba(15,23,42,0.18);
-          padding: 28px;
-        }
-        .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
-        .modal-title { font-size: 16px; font-weight: 700; color: #0f172a; }
-        .modal-close {
-          background: none; border: none; cursor: pointer;
-          color: #94a3b8; padding: 2px; border-radius: 5px;
-        }
-        .modal-close:hover { color: #475569; background: #f1f5f9; }
-        .modal-actions { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
-
-        /* FORM */
-        .form-group { margin-bottom: 14px; }
-        .form-label { display: block; font-size: 12.5px; font-weight: 600; color: #475569; margin-bottom: 6px; }
-        .form-input {
-          width: 100%; padding: 9px 12px;
-          border: 1px solid #e2e8f0; border-radius: 7px;
-          font-size: 13.5px; color: #0f172a; background: #fff;
-          outline: none; transition: border-color 0.12s, box-shadow 0.12s;
-        }
-        .form-input:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(147,197,253,0.25); }
-        .form-input::placeholder { color: #cbd5e1; }
-        .form-select {
-          width: 100%; padding: 9px 12px;
-          border: 1px solid #e2e8f0; border-radius: 7px;
-          font-size: 13.5px; color: #0f172a; background: #fff;
-          outline: none; transition: border-color 0.12s, box-shadow 0.12s;
-          appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-          background-repeat: no-repeat;
-          background-position: right 12px center;
-          padding-right: 32px;
-        }
-        .form-select:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(147,197,253,0.25); }
-        .form-error { font-size: 12px; color: #e11d48; margin-top: 10px; }
-
-        /* CONCEPT HINT */
-        .concept-hint {
-          background: #fffbeb; border: 1px solid #fde68a;
-          border-radius: 7px; padding: 10px 12px;
-          font-size: 12.5px; color: #92400e; margin-bottom: 14px;
-        }
-
-        /* RESPONSIVE */
-        @media (max-width: 640px) {
-          .page { padding: 16px; }
-          .topbar { padding: 0 16px; }
-          .breadcrumb { display: none; }
-          .page-title { font-size: 18px; }
-          .data-table th, .data-table td { padding: 10px 12px; }
-          .hide-mobile { display: none; }
-          .tab { padding: 10px 12px; font-size: 12.5px; }
-        }
-      `}</style>
-
-      {/* TOP BAR */}
-      <header className="topbar">
-        <div className="topbar-left">
-          <button className="back-btn" onClick={() => navigate("/dashboard")}>
-            <IconBack />
-            Kthehu
-          </button>
-          <div className="breadcrumb">
-            <Link to="/dashboard" className="breadcrumb-link">Paneli</Link>
-            <span className="breadcrumb-sep"><IconChevron /></span>
-            <span className="breadcrumb-current">Klasa #{id}</span>
-          </div>
-        </div>
-      </header>
-
-      <div className="page">
-        {/* PAGE TITLE */}
-        <div className="page-title-row">
-          <div>
-            <div className="page-title">Detajet e klasës</div>
-            <div className="page-subtitle">ID: {id} · Menaxhoni nxënësit, lëndët, konceptet dhe testet</div>
-          </div>
-        </div>
-
-        {banner && (
-          <Alert
-            type={banner.type}
-            message={banner.text}
-            onClose={() => setBanner(null)}
-          />
-        )}
-
-        {/* TABS */}
-        <div className="tabs">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              className={`tab${activeTab === t.key ? " active" : ""}`}
-              onClick={() => setActiveTab(t.key)}
-            >
-              {t.label}
-              <span className="tab-badge">{t.count}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* ── STUDENTS TAB ── */}
-        {activeTab === "students" && (
-          <>
-            <SectionHeader
-              icon={<IconStudent />}
-              title="Nxënësit"
-              count={students.length}
-              onAdd={() => openModal("student")}
-              addLabel="Shto nxënës"
-            />
-            <div className="section-actions-row">
-              <button className="inactive-link" onClick={() => navigate("/inactive-students")}>
-                <IconArchive />
-                Nxënësit joaktivë
-              </button>
-            </div>
-            {students.length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Emri i plotë</th>
-                    <th className="hide-mobile">Numri personal</th>
-                    <th className="hide-mobile">Datëlindja</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((s) => (
-                    <tr key={s.id}>
-                      <td>
-                        <Link to={`/students/${s.id}/results`} className="td-link">
-                          {s.full_name}
-                        </Link>
-                      </td>
-                      <td className="td-meta hide-mobile">{s.personal_number}</td>
-                      <td className="td-meta hide-mobile">
-                        {s.date_birth
-                          ? new Date(s.date_birth).toLocaleDateString("sq-AL", { day: "numeric", month: "short", year: "numeric" })
-                          : "—"}
-                      </td>
-                      <td className="td-actions">
-                        <button
-                          className="btn-edit"
-                          onClick={() => openEditStudent(s)}
-                        >
-                          <IconEdit />
-                          Ndrysho
-                        </button>
-                        <button
-                          className="btn-delete"
-                          onClick={() => {
-                            if (window.confirm(`Të çaktivizohet nxënësi "${s.full_name}"? Mund ta riaktivizoni më vonë.`)) {
-                              handleDeactivateStudent(s.id);
-                            }
-                          }}
-                          disabled={deletingId === s.id}
-                        >
-                          <IconArchive />
-                          {deletingId === s.id ? "…" : "Çaktivizo"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <EmptyState text="Shtoni nxënësin e parë duke klikuar 'Shto nxënës'." />
-            )}
-          </>
-        )}
-
-        {/* ── SUBJECTS TAB ── */}
-        {activeTab === "subjects" && (
-          <>
-            <SectionHeader
-              icon={<IconSubject />}
-              title="Lëndët"
-              count={subjects.length}
-              onAdd={() => openModal("subject")}
-              addLabel="Shto lëndë"
-            />
-            <div className="section-actions-row">
-              <button className="inactive-link" onClick={() => navigate("/inactive-subjects")}>
-                <IconArchive />
-                Lëndët joaktive
-              </button>
-            </div>
-            {subjects.length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Emri i lëndës</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {subjects.map((s) => (
-                    <tr key={s.id}>
-                      <td className="td-name">{s.name}</td>
-                      <td className="td-actions">
-                        <button
-                          className="btn-edit"
-                          onClick={() => openEditSubject(s)}
-                        >
-                          <IconEdit />
-                          Ndrysho
-                        </button>
-                        <button
-                          className="btn-delete"
-                          onClick={() => {
-                            if (window.confirm(`Të fshihet lënda "${s.name}"?`)) {
-                              handleDeleteSubject(s.id);
-                            }
-                          }}
-                          disabled={deletingId === s.id}
-                        >
-                          <IconTrash />
-                          {deletingId === s.id ? "…" : "Fshi"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <EmptyState text="Shtoni lëndën e parë duke klikuar 'Shto lëndë'." />
-            )}
-          </>
-        )}
-
-        {/* ── CONCEPTS TAB ── */}
-        {activeTab === "concepts" && (
-          <>
-            <SectionHeader
-              icon={<IconConcept />}
-              title="Konceptet"
-              count={concepts.length}
-              onAdd={() => openModal("concept")}
-              addLabel="Shto koncept"
-            />
-            <div className="section-actions-row">
-              <button className="inactive-link" onClick={() => navigate("/inactive-concepts")}>
-                <IconArchive />
-                Konceptet joaktive
-              </button>
-            </div>
-
-            <div className="subject-filter">
-              <label>Filtro sipas lëndës:</label>
-              <select
-                value={selectedSubjectId}
-                onChange={(e) => handleSubjectChange(e.target.value)}
+      {loading ? (
+        <LoadingSpinner text="Duke ngarkuar klasën…" />
+      ) : (
+        <>
+          <div className="sb-tabs">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                className={`sb-tab${activeTab === t.key ? " sb-tab-active" : ""}`}
+                onClick={() => setActiveTab(t.key)}
               >
-                <option value="">— Zgjidhni lëndën —</option>
-                {subjects.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {!selectedSubjectId ? (
-              <EmptyState text="Zgjidhni një lëndë për të parë konceptet e saj." />
-            ) : concepts.length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Emri i konceptit</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {concepts.map((c) => (
-                    <tr key={c.id}>
-                      <td className="td-name">{c.name}</td>
-                      <td className="td-actions">
-                        <button
-                          className="btn-edit"
-                          onClick={() => openEditConcept(c)}
-                        >
-                          <IconEdit />
-                          Ndrysho
-                        </button>
-                        <button
-                          className="btn-delete"
-                          onClick={() => {
-                            if (window.confirm(`Të fshihet koncepti "${c.name}"?`)) {
-                              handleDeleteConcept(c.id);
-                            }
-                          }}
-                          disabled={deletingId === c.id}
-                        >
-                          <IconTrash />
-                          {deletingId === c.id ? "…" : "Fshi"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <EmptyState text="Kjo lëndë nuk ka koncepte ende." />
-            )}
-          </>
-        )}
-
-        {/* ── TESTS TAB ── */}
-        {activeTab === "tests" && (
-          <>
-            <SectionHeader
-              icon={<IconTest />}
-              title="Testet"
-              count={tests.length}
-              onAdd={() => openModal("test")}
-              addLabel="Shto test"
-            />
-            <div className="section-actions-row">
-              <button className="inactive-link" onClick={() => navigate("/archived-tests")}>
-                <IconArchive />
-                Testet e arkivuara
+                {t.label}
+                <span className="sb-tab-badge">{t.count}</span>
               </button>
-            </div>
-            {tests.length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Titulli i testit</th>
-                    <th className="hide-mobile">Lënda</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tests.map((t) => (
-                    <tr key={t.id}>
-                      <td>
-                        <Link to={`/tests/${t.id}`} className="td-link">{t.title}</Link>
-                      </td>
-                      <td className="td-meta hide-mobile">
-                        {subjects.find((s) => s.id === t.subject_id)?.name ?? "—"}
-                      </td>
-                      <td className="td-actions">
-                        <button
-                          className="btn-delete"
-                          onClick={() => {
-                            if (window.confirm(`Të fshihet testi "${t.title}"?`)) {
-                              handleDeleteTest(t.id);
-                            }
-                          }}
-                          disabled={deletingId === t.id}
-                        >
-                          <IconTrash />
-                          {deletingId === t.id ? "…" : "Fshi"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <EmptyState text="Krijoni testin e parë duke klikuar 'Shto test'." />
-            )}
-          </>
-        )}
-      </div>
+            ))}
+          </div>
 
-      {/* ── MODALS ── */}
+          {/* ── STUDENTS TAB ── */}
+          {activeTab === "students" && (
+            <>
+              <SectionHeader
+                icon={<IconStudent />}
+                title="Nxënësit"
+                count={students.length}
+                onAdd={() => openModal("student")}
+                addLabel="Shto nxënës"
+              />
+              {students.length > 0 ? (
+                <div className="sb-table-wrap">
+                  <table className="sb-table">
+                    <thead>
+                      <tr>
+                        <th>Emri i plotë</th>
+                        <th>Numri personal</th>
+                        <th>Datëlindja</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.map((s) => (
+                        <tr key={s.id}>
+                          <td>
+                            <Link to={`/students/${s.id}/results`} className="sb-td-link">
+                              {s.full_name}
+                            </Link>
+                          </td>
+                          <td className="sb-td-meta">{s.personal_number}</td>
+                          <td className="sb-td-meta">
+                            {s.date_birth
+                              ? new Date(s.date_birth).toLocaleDateString("sq-AL", { day: "numeric", month: "short", year: "numeric" })
+                              : "—"}
+                          </td>
+                          <td className="sb-td-actions">
+                            <button className="sb-btn sb-btn-ghost" style={{ marginRight: 6 }} onClick={() => openEditStudent(s)}>
+                              <IconEdit />
+                              Ndrysho
+                            </button>
+                            <button
+                              className="sb-btn sb-btn-warn-ghost"
+                              onClick={() => setPendingAction({ kind: "deactivateStudent", id: s.id, label: s.full_name })}
+                              disabled={deletingId === s.id}
+                            >
+                              <IconArchive />
+                              {deletingId === s.id ? "…" : "Çaktivizo"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState title="Asgjë këtu ende" description="Shtoni nxënësin e parë duke klikuar 'Shto nxënës'." />
+              )}
+            </>
+          )}
+
+          {/* ── SUBJECTS TAB ── */}
+          {activeTab === "subjects" && (
+            <>
+              <SectionHeader
+                icon={<IconSubject />}
+                title="Lëndët"
+                count={subjects.length}
+                onAdd={() => openModal("subject")}
+                addLabel="Shto lëndë"
+              />
+              {subjects.length > 0 ? (
+                <div className="sb-table-wrap">
+                  <table className="sb-table">
+                    <thead>
+                      <tr>
+                        <th>Emri i lëndës</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {subjects.map((s) => (
+                        <tr key={s.id}>
+                          <td className="sb-td-name">{s.name}</td>
+                          <td className="sb-td-actions">
+                            <button className="sb-btn sb-btn-ghost" style={{ marginRight: 6 }} onClick={() => openEditSubject(s)}>
+                              <IconEdit />
+                              Ndrysho
+                            </button>
+                            <button
+                              className="sb-btn sb-btn-warn-ghost"
+                              onClick={() => setPendingAction({ kind: "deleteSubject", id: s.id, label: s.name })}
+                              disabled={deletingId === s.id}
+                            >
+                              <IconArchive />
+                              {deletingId === s.id ? "…" : "Çaktivizo"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState title="Asgjë këtu ende" description="Shtoni lëndën e parë duke klikuar 'Shto lëndë'." />
+              )}
+            </>
+          )}
+
+          {/* ── CONCEPTS TAB ── */}
+          {activeTab === "concepts" && (
+            <>
+              <SectionHeader
+                icon={<IconConcept />}
+                title="Konceptet"
+                count={concepts.length}
+                onAdd={() => openModal("concept")}
+                addLabel="Shto koncept"
+              />
+              <div className="sb-card sb-filter-row">
+                <label>Filtro sipas lëndës:</label>
+                <select
+                  className="sb-form-select"
+                  style={{ flex: 1 }}
+                  value={selectedSubjectId}
+                  onChange={(e) => handleSubjectChange(e.target.value)}
+                >
+                  <option value="">— Zgjidhni lëndën —</option>
+                  {subjects.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {!selectedSubjectId ? (
+                <EmptyState title="Asgjë këtu ende" description="Zgjidhni një lëndë për të parë konceptet e saj." />
+              ) : concepts.length > 0 ? (
+                <div className="sb-table-wrap">
+                  <table className="sb-table">
+                    <thead>
+                      <tr>
+                        <th>Emri i konceptit</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {concepts.map((c) => (
+                        <tr key={c.id}>
+                          <td className="sb-td-name">{c.name}</td>
+                          <td className="sb-td-actions">
+                            <button className="sb-btn sb-btn-ghost" style={{ marginRight: 6 }} onClick={() => openEditConcept(c)}>
+                              <IconEdit />
+                              Ndrysho
+                            </button>
+                            <button
+                              className="sb-btn sb-btn-warn-ghost"
+                              onClick={() => setPendingAction({ kind: "deleteConcept", id: c.id, label: c.name })}
+                              disabled={deletingId === c.id}
+                            >
+                              <IconArchive />
+                              {deletingId === c.id ? "…" : "Çaktivizo"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState title="Asgjë këtu ende" description="Kjo lëndë nuk ka koncepte ende." />
+              )}
+            </>
+          )}
+
+          {/* ── TESTS TAB ── */}
+          {activeTab === "tests" && (
+            <>
+              <SectionHeader
+                icon={<IconTest />}
+                title="Testet"
+                count={tests.length}
+                onAdd={() => openModal("test")}
+                addLabel="Shto test"
+              />
+              {tests.length > 0 ? (
+                <div className="sb-table-wrap">
+                  <table className="sb-table">
+                    <thead>
+                      <tr>
+                        <th>Titulli i testit</th>
+                        <th>Lënda</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tests.map((t) => (
+                        <tr key={t.id}>
+                          <td>
+                            <Link to={`/tests/${t.id}`} className="sb-td-link">{t.title}</Link>
+                          </td>
+                          <td className="sb-td-meta">
+                            {subjects.find((s) => s.id === t.subject_id)?.name ?? "—"}
+                          </td>
+                          <td className="sb-td-actions">
+                            <button
+                              className="sb-btn sb-btn-warn-ghost"
+                              onClick={() => setPendingAction({ kind: "deleteTest", id: t.id, label: t.title })}
+                              disabled={deletingId === t.id}
+                            >
+                              <IconArchive />
+                              {deletingId === t.id ? "…" : "Arkivo"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState title="Asgjë këtu ende" description="Krijoni testin e parë duke klikuar 'Shto test'." />
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {/* ── CREATE / EDIT MODALS ── */}
       {activeModal === "student" && (
-        <Modal
-          title="Shto nxënës të ri"
-          onClose={closeModal}
-          onSubmit={handleCreateStudent}
-          submitting={submitting}
-          error={formError}
-          submitLabel="Shto nxënësin"
-        >
-          <div className="form-group">
-            <label className="form-label">Emri i plotë</label>
-            <input className="form-input" type="text" placeholder="p.sh. Artan Berisha" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+        <Modal title="Shto nxënës të ri" onClose={closeModal} onSubmit={handleCreateStudent} submitting={submitting} error={formError} submitLabel="Shto nxënësin">
+          <div className="sb-form-group">
+            <label className="sb-form-label">Emri i plotë</label>
+            <input className="sb-form-input" type="text" placeholder="p.sh. Artan Berisha" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
           </div>
-          <div className="form-group">
-            <label className="form-label">Numri personal</label>
-            <input className="form-input" type="text" placeholder="Numri personal i nxënësit" value={personalNumber} onChange={(e) => setPersonalNumber(e.target.value)} required />
+          <div className="sb-form-group">
+            <label className="sb-form-label">Numri personal</label>
+            <input className="sb-form-input" type="text" placeholder="Numri personal i nxënësit" value={personalNumber} onChange={(e) => setPersonalNumber(e.target.value)} required />
           </div>
-          <div className="form-group">
-            <label className="form-label">Datëlindja <span style={{ color: "#94a3b8", fontWeight: 400 }}>(opcionale)</span></label>
-            <input className="form-input" type="date" value={dateBirth} onChange={(e) => setDateBirth(e.target.value)} />
+          <div className="sb-form-group">
+            <label className="sb-form-label">Datëlindja <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span></label>
+            <input className="sb-form-input" type="date" value={dateBirth} onChange={(e) => setDateBirth(e.target.value)} />
           </div>
         </Modal>
       )}
 
       {activeModal === "subject" && (
-        <Modal
-          title="Shto lëndë të re"
-          onClose={closeModal}
-          onSubmit={handleCreateSubject}
-          submitting={submitting}
-          error={formError}
-          submitLabel="Shto lëndën"
-        >
-          <div className="form-group">
-            <label className="form-label">Emri i lëndës</label>
-            <input className="form-input" type="text" placeholder="p.sh. Matematikë" value={subjectName} onChange={(e) => setSubjectName(e.target.value)} required />
+        <Modal title="Shto lëndë të re" onClose={closeModal} onSubmit={handleCreateSubject} submitting={submitting} error={formError} submitLabel="Shto lëndën">
+          <div className="sb-form-group">
+            <label className="sb-form-label">Emri i lëndës</label>
+            <input className="sb-form-input" type="text" placeholder="p.sh. Matematikë" value={subjectName} onChange={(e) => setSubjectName(e.target.value)} required />
           </div>
         </Modal>
       )}
 
       {activeModal === "concept" && (
-        <Modal
-          title="Shto koncept të ri"
-          onClose={closeModal}
-          onSubmit={handleCreateConcept}
-          submitting={submitting}
-          error={formError}
-          submitLabel="Shto konceptin"
-        >
+        <Modal title="Shto koncept të ri" onClose={closeModal} onSubmit={handleCreateConcept} submitting={submitting} error={formError} submitLabel="Shto konceptin">
           {!selectedSubjectId && (
-            <div className="concept-hint">
+            <div className="sb-hint">
               Zgjidhni fillimisht një lëndë në skedën "Konceptet" për të lidhur konceptin.
             </div>
           )}
-          <div className="form-group">
-            <label className="form-label">Lënda</label>
-            <select className="form-select" value={selectedSubjectId} onChange={(e) => handleSubjectChange(e.target.value)} required>
+          <div className="sb-form-group">
+            <label className="sb-form-label">Lënda</label>
+            <select className="sb-form-select" value={selectedSubjectId} onChange={(e) => handleSubjectChange(e.target.value)} required>
               <option value="">— Zgjidhni lëndën —</option>
               {subjects.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
             </select>
           </div>
-          <div className="form-group">
-            <label className="form-label">Emri i konceptit</label>
-            <input className="form-input" type="text" placeholder="p.sh. Thyesat" value={conceptName} onChange={(e) => setConceptName(e.target.value)} required />
+          <div className="sb-form-group">
+            <label className="sb-form-label">Emri i konceptit</label>
+            <input className="sb-form-input" type="text" placeholder="p.sh. Thyesat" value={conceptName} onChange={(e) => setConceptName(e.target.value)} required />
           </div>
         </Modal>
       )}
 
       {activeModal === "test" && (
-        <Modal
-          title="Krijo test të ri"
-          onClose={closeModal}
-          onSubmit={handleCreateTest}
-          submitting={submitting}
-          error={formError}
-          submitLabel="Krijo testin"
-        >
-          <div className="form-group">
-            <label className="form-label">Lënda</label>
-            <select className="form-select" value={selectedTestSubjectId} onChange={(e) => setSelectedTestSubjectId(Number(e.target.value))} required>
+        <Modal title="Krijo test të ri" onClose={closeModal} onSubmit={handleCreateTest} submitting={submitting} error={formError} submitLabel="Krijo testin">
+          <div className="sb-form-group">
+            <label className="sb-form-label">Lënda</label>
+            <select className="sb-form-select" value={selectedTestSubjectId} onChange={(e) => setSelectedTestSubjectId(Number(e.target.value))} required>
               <option value="">— Zgjidhni lëndën —</option>
               {subjects.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
             </select>
           </div>
-          <div className="form-group">
-            <label className="form-label">Titulli i testit</label>
-            <input className="form-input" type="text" placeholder="p.sh. Matematikë — Testi 1" value={testTitle} onChange={(e) => setTestTitle(e.target.value)} required />
+          <div className="sb-form-group">
+            <label className="sb-form-label">Titulli i testit</label>
+            <input className="sb-form-input" type="text" placeholder="p.sh. Matematikë — Testi 1" value={testTitle} onChange={(e) => setTestTitle(e.target.value)} required />
           </div>
         </Modal>
       )}
 
       {activeModal === "editStudent" && (
-        <Modal
-          title="Ndrysho nxënësin"
-          onClose={closeModal}
-          onSubmit={handleUpdateStudent}
-          submitting={submitting}
-          error={formError}
-          submitLabel="Ruaj ndryshimet"
-        >
-          <div className="form-group">
-            <label className="form-label">Emri i plotë</label>
-            <input className="form-input" type="text" placeholder="p.sh. Artan Berisha" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+        <Modal title="Ndrysho nxënësin" onClose={closeModal} onSubmit={handleUpdateStudent} submitting={submitting} error={formError} submitLabel="Ruaj ndryshimet">
+          <div className="sb-form-group">
+            <label className="sb-form-label">Emri i plotë</label>
+            <input className="sb-form-input" type="text" placeholder="p.sh. Artan Berisha" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
           </div>
-          <div className="form-group">
-            <label className="form-label">Numri personal</label>
-            <input className="form-input" type="text" placeholder="Numri personal i nxënësit" value={personalNumber} onChange={(e) => setPersonalNumber(e.target.value)} required />
+          <div className="sb-form-group">
+            <label className="sb-form-label">Numri personal</label>
+            <input className="sb-form-input" type="text" placeholder="Numri personal i nxënësit" value={personalNumber} onChange={(e) => setPersonalNumber(e.target.value)} required />
           </div>
-          <div className="form-group">
-            <label className="form-label">Datëlindja <span style={{ color: "#94a3b8", fontWeight: 400 }}>(opcionale)</span></label>
-            <input className="form-input" type="date" value={dateBirth} onChange={(e) => setDateBirth(e.target.value)} />
+          <div className="sb-form-group">
+            <label className="sb-form-label">Datëlindja <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span></label>
+            <input className="sb-form-input" type="date" value={dateBirth} onChange={(e) => setDateBirth(e.target.value)} />
           </div>
         </Modal>
       )}
 
       {activeModal === "editSubject" && (
-        <Modal
-          title="Ndrysho lëndën"
-          onClose={closeModal}
-          onSubmit={handleUpdateSubject}
-          submitting={submitting}
-          error={formError}
-          submitLabel="Ruaj ndryshimet"
-        >
-          <div className="form-group">
-            <label className="form-label">Emri i lëndës</label>
-            <input className="form-input" type="text" placeholder="p.sh. Matematikë" value={subjectName} onChange={(e) => setSubjectName(e.target.value)} required />
+        <Modal title="Ndrysho lëndën" onClose={closeModal} onSubmit={handleUpdateSubject} submitting={submitting} error={formError} submitLabel="Ruaj ndryshimet">
+          <div className="sb-form-group">
+            <label className="sb-form-label">Emri i lëndës</label>
+            <input className="sb-form-input" type="text" placeholder="p.sh. Matematikë" value={subjectName} onChange={(e) => setSubjectName(e.target.value)} required />
           </div>
         </Modal>
       )}
 
       {activeModal === "editConcept" && (
-        <Modal
-          title="Ndrysho konceptin"
-          onClose={closeModal}
-          onSubmit={handleUpdateConcept}
-          submitting={submitting}
-          error={formError}
-          submitLabel="Ruaj ndryshimet"
-        >
-          <div className="form-group">
-            <label className="form-label">Emri i konceptit</label>
-            <input className="form-input" type="text" placeholder="p.sh. Thyesat" value={conceptName} onChange={(e) => setConceptName(e.target.value)} required />
+        <Modal title="Ndrysho konceptin" onClose={closeModal} onSubmit={handleUpdateConcept} submitting={submitting} error={formError} submitLabel="Ruaj ndryshimet">
+          <div className="sb-form-group">
+            <label className="sb-form-label">Emri i konceptit</label>
+            <input className="sb-form-input" type="text" placeholder="p.sh. Thyesat" value={conceptName} onChange={(e) => setConceptName(e.target.value)} required />
           </div>
         </Modal>
       )}
-    </>
+
+      {pendingAction && (
+        <ConfirmDialog
+          title={
+            pendingAction.kind === "deactivateStudent" ? "Çaktivizo nxënësin" :
+            pendingAction.kind === "deleteTest" ? "Arkivo testin" :
+            pendingAction.kind === "deleteSubject" ? "Çaktivizo lëndën" : "Çaktivizo konceptin"
+          }
+          message={
+            pendingAction.kind === "deactivateStudent"
+              ? `Të çaktivizohet nxënësi "${pendingAction.label}"? Mund ta riaktivizoni më vonë nga "Arkivi" në menu.`
+              : pendingAction.kind === "deleteTest"
+              ? `Të arkivohet testi "${pendingAction.label}"? Mund ta rikthesh më vonë si draft nga "Arkivi" në menu.`
+              : `Të çaktivizohet "${pendingAction.label}"? Mund ta riaktivizoni më vonë nga "Arkivi" në menu.`
+          }
+          confirmLabel={pendingAction.kind === "deleteTest" ? "Arkivo" : "Çaktivizo"}
+          variant="default"
+          submitting={deletingId === pendingAction.id}
+          onCancel={() => setPendingAction(null)}
+          onConfirm={runPendingAction}
+        />
+      )}
+    </Layout>
   );
 }
 

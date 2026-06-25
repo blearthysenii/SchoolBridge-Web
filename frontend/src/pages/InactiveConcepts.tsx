@@ -6,6 +6,7 @@ import Layout from "../components/Layout";
 import Alert from "../components/Alert";
 import EmptyState from "../components/EmptyState";
 import LoadingSpinner from "../components/LoadingSpinner";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 import { getInactiveConcepts, restoreConcept } from "../services/conceptService";
 import { getClassrooms } from "../services/classroomService";
@@ -34,6 +35,7 @@ export default function InactiveConcepts() {
   const [loading, setLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<number | null>(null);
   const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [pendingConcept, setPendingConcept] = useState<Concept | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -77,7 +79,6 @@ export default function InactiveConcepts() {
   const subjectName = (id: number) => subjects.find((s) => s.id === id)?.name ?? "—";
 
   const handleRestore = async (c: Concept) => {
-    if (!window.confirm(`Të riaktivizohet koncepti "${c.name}"?`)) return;
     setRestoringId(c.id);
     try {
       await restoreConcept(c.id);
@@ -87,6 +88,7 @@ export default function InactiveConcepts() {
       setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi riaktivizimi." });
     } finally {
       setRestoringId(null);
+      setPendingConcept(null);
     }
   };
 
@@ -102,25 +104,25 @@ export default function InactiveConcepts() {
           description="Konceptet e çaktivizuara nga lëndët tuaja do të shfaqen këtu."
         />
       ) : (
-        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: "10px", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="sb-table-wrap">
+          <table className="sb-table">
             <thead>
-              <tr style={{ background: "#F8FAFC" }}>
-                <th style={th}>Emri i konceptit</th>
-                <th style={th}>Lënda</th>
-                <th style={th}></th>
+              <tr>
+                <th>Emri i konceptit</th>
+                <th>Lënda</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {concepts.map((c) => (
-                <tr key={c.id} style={{ borderTop: "1px solid #F1F5F9" }}>
-                  <td style={{ ...td, fontWeight: 600, color: "#0F172A" }}>{c.name}</td>
-                  <td style={{ ...td, color: "#64748B" }}>{subjectName(c.subject_id)}</td>
-                  <td style={{ ...td, textAlign: "right" }}>
+                <tr key={c.id}>
+                  <td className="sb-td-name">{c.name}</td>
+                  <td className="sb-td-meta">{subjectName(c.subject_id)}</td>
+                  <td className="sb-td-actions">
                     <button
-                      onClick={() => handleRestore(c)}
+                      onClick={() => setPendingConcept(c)}
                       disabled={restoringId === c.id}
-                      style={btnRestore}
+                      className="sb-btn sb-btn-restore"
                     >
                       <IconRestore />
                       {restoringId === c.id ? "…" : "Riaktivizo"}
@@ -132,37 +134,17 @@ export default function InactiveConcepts() {
           </table>
         </div>
       )}
+
+      {pendingConcept && (
+        <ConfirmDialog
+          title="Riaktivizo konceptin"
+          message={`Të riaktivizohet koncepti "${pendingConcept.name}"?`}
+          confirmLabel="Riaktivizo"
+          submitting={restoringId === pendingConcept.id}
+          onCancel={() => setPendingConcept(null)}
+          onConfirm={() => handleRestore(pendingConcept)}
+        />
+      )}
     </Layout>
   );
 }
-
-const th: React.CSSProperties = {
-  textAlign: "left",
-  fontSize: "11.5px",
-  fontWeight: 600,
-  color: "#64748B",
-  textTransform: "uppercase",
-  letterSpacing: "0.5px",
-  padding: "10px 16px",
-};
-
-const td: React.CSSProperties = {
-  padding: "12px 16px",
-  fontSize: "13.5px",
-  color: "#334155",
-  verticalAlign: "middle",
-};
-
-const btnRestore: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "6px",
-  padding: "6px 12px",
-  borderRadius: "6px",
-  fontSize: "12.5px",
-  fontWeight: 600,
-  color: "#0F766E",
-  background: "#ECFDF5",
-  border: "1px solid #A7F3D0",
-  cursor: "pointer",
-};

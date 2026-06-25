@@ -6,6 +6,7 @@ import Layout from "../components/Layout";
 import Alert from "../components/Alert";
 import EmptyState from "../components/EmptyState";
 import LoadingSpinner from "../components/LoadingSpinner";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 import { getInactiveStudents, activateStudent } from "../services/studentService";
 import { getClassrooms } from "../services/classroomService";
@@ -40,6 +41,7 @@ export default function InactiveStudents() {
   const [loading, setLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<number | null>(null);
   const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [pendingStudent, setPendingStudent] = useState<Student | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -79,7 +81,6 @@ export default function InactiveStudents() {
   const classroomName = (id: number) => classrooms.find((c) => c.id === id)?.name ?? "—";
 
   const handleActivate = async (s: Student) => {
-    if (!window.confirm(`Të riaktivizohet nxënësi "${s.full_name}"?`)) return;
     setRestoringId(s.id);
     try {
       await activateStudent(s.id);
@@ -89,6 +90,7 @@ export default function InactiveStudents() {
       setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi riaktivizimi." });
     } finally {
       setRestoringId(null);
+      setPendingStudent(null);
     }
   };
 
@@ -104,35 +106,35 @@ export default function InactiveStudents() {
           description="Nxënësit e çaktivizuar nga klasat tuaja do të shfaqen këtu."
         />
       ) : (
-        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: "10px", overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="sb-table-wrap">
+          <table className="sb-table">
             <thead>
-              <tr style={{ background: "#F8FAFC" }}>
-                <th style={th}>Emri i plotë</th>
-                <th style={th}>Klasa</th>
-                <th style={th}>Numri personal</th>
-                <th style={th}></th>
+              <tr>
+                <th>Emri i plotë</th>
+                <th>Klasa</th>
+                <th>Numri personal</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {students.map((s) => (
-                <tr key={s.id} style={{ borderTop: "1px solid #F1F5F9" }}>
-                  <td style={td}>
-                    <Link to={`/students/${s.id}/results`} style={{ color: "#2563EB", fontWeight: 600, textDecoration: "none" }}>
+                <tr key={s.id}>
+                  <td>
+                    <Link to={`/students/${s.id}/results`} className="sb-td-link">
                       {s.full_name}
                     </Link>
                   </td>
-                  <td style={td}>
-                    <Link to={`/classrooms/${s.classroom_id}`} style={{ color: "#64748B", textDecoration: "none" }}>
+                  <td className="sb-td-meta">
+                    <Link to={`/classrooms/${s.classroom_id}`} className="sb-td-link" style={{ color: "#64748B" }}>
                       {classroomName(s.classroom_id)}
                     </Link>
                   </td>
-                  <td style={{ ...td, color: "#94A3B8" }}>{s.personal_number}</td>
-                  <td style={{ ...td, textAlign: "right" }}>
+                  <td className="sb-td-muted">{s.personal_number}</td>
+                  <td className="sb-td-actions">
                     <button
-                      onClick={() => handleActivate(s)}
+                      onClick={() => setPendingStudent(s)}
                       disabled={restoringId === s.id}
-                      style={btnRestore}
+                      className="sb-btn sb-btn-restore"
                     >
                       <IconRestore />
                       {restoringId === s.id ? "…" : "Riaktivizo"}
@@ -144,37 +146,17 @@ export default function InactiveStudents() {
           </table>
         </div>
       )}
+
+      {pendingStudent && (
+        <ConfirmDialog
+          title="Riaktivizo nxënësin"
+          message={`Të riaktivizohet nxënësi "${pendingStudent.full_name}"?`}
+          confirmLabel="Riaktivizo"
+          submitting={restoringId === pendingStudent.id}
+          onCancel={() => setPendingStudent(null)}
+          onConfirm={() => handleActivate(pendingStudent)}
+        />
+      )}
     </Layout>
   );
 }
-
-const th: React.CSSProperties = {
-  textAlign: "left",
-  fontSize: "11.5px",
-  fontWeight: 600,
-  color: "#64748B",
-  textTransform: "uppercase",
-  letterSpacing: "0.5px",
-  padding: "10px 16px",
-};
-
-const td: React.CSSProperties = {
-  padding: "12px 16px",
-  fontSize: "13.5px",
-  color: "#334155",
-  verticalAlign: "middle",
-};
-
-const btnRestore: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "6px",
-  padding: "6px 12px",
-  borderRadius: "6px",
-  fontSize: "12.5px",
-  fontWeight: 600,
-  color: "#0F766E",
-  background: "#ECFDF5",
-  border: "1px solid #A7F3D0",
-  cursor: "pointer",
-};
