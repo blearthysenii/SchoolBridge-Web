@@ -9,6 +9,10 @@ export default function SplashScreen() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
+        :root{
+          --bg-color:#1B1B1B;
+        }
+
         .splash-root {
           position: fixed;
           inset: 0;
@@ -16,7 +20,7 @@ export default function SplashScreen() {
           height: 100vh;
           height: 100svh;
           overflow: hidden;
-          background: #181818;
+          background:var(--bg-color);
           font-family: 'Inter', sans-serif;
         }
 
@@ -34,26 +38,36 @@ export default function SplashScreen() {
           height: 100% !important;
         }
 
-        .spline-watermark-cover {
-          position: fixed;
-          right: 0;
-          bottom: 0;
-          width: 220px;
-          height: 70px;
-          background: #181818;
-          z-index: 20;
-          pointer-events: none;
+        .spline-watermark-cover{
+          position:fixed;
+          left:0;
+          right:0;
+          bottom:0;
+          height:90px;
+          background:var(--bg-color);
+          z-index:99999;
+          pointer-events:none;
+        }
+
+        .spline-watermark-cover::after{
+          content:"";
+          position:absolute;
+          right:0;
+          bottom:90px;
+          width:240px;
+          height:160px;
+          background:var(--bg-color);
         }
 
         .splash-soft-shadow {
           position: absolute;
           left: 50%;
-          bottom: 52px;
+          bottom: 72px;
           transform: translateX(-50%);
           width: min(92%, 520px);
           height: 210px;
           border-radius: 34px;
-          background: rgba(37, 99, 235, 0.13);
+          background: rgba(0, 0, 0, 0.22);
           filter: blur(42px);
           z-index: 3;
           pointer-events: none;
@@ -62,14 +76,14 @@ export default function SplashScreen() {
         .splash-glass {
           position: absolute;
           left: 50%;
-          bottom: 70px;
+          bottom: 105px;
           transform: translateX(-50%);
           width: min(92%, 480px);
-          padding: 24px 24px 22px;
+          padding: 30px 24px 24px;
           border-radius: 30px;
           background: rgba(255, 255, 255, 0.78);
           border: 1px solid rgba(255, 255, 255, 0.95);
-          box-shadow: 0 28px 80px rgba(0, 0, 0, 0.22);
+          box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
           backdrop-filter: blur(18px);
           -webkit-backdrop-filter: blur(18px);
           z-index: 10;
@@ -88,45 +102,23 @@ export default function SplashScreen() {
           }
         }
 
-        .splash-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 7px 13px;
-          border-radius: 999px;
-          background: rgba(239, 246, 255, 0.95);
-          color: #2563eb;
-          font-size: 12px;
-          font-weight: 800;
-          margin-bottom: 13px;
-          border: 1px solid rgba(191, 219, 254, 0.9);
-        }
-
-        .splash-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 999px;
-          background: #2563eb;
-          box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.13);
-        }
-
         .splash-title {
           margin: 0;
-          font-size: 39px;
+          font-size: 40px;
           font-weight: 800;
           letter-spacing: -0.045em;
           line-height: 1.05;
-          color: #0f172a;
+          color: #050505;
         }
 
         .splash-title span {
-          color: #2563eb;
+          color: #050505;
         }
 
         .splash-text {
-          margin: 12px auto 23px;
-          max-width: 355px;
-          color: #64748b;
+          margin: 14px auto 24px;
+          max-width: 360px;
+          color: #475569;
           font-size: 14px;
           font-weight: 500;
           line-height: 1.65;
@@ -140,7 +132,7 @@ export default function SplashScreen() {
 
         .splash-btn {
           border-radius: 16px;
-          padding: 13px 23px;
+          padding: 13px 24px;
           font-size: 14px;
           font-weight: 800;
           cursor: pointer;
@@ -149,27 +141,56 @@ export default function SplashScreen() {
         }
 
         .splash-btn-primary {
-          border: 1px solid #2563eb;
+          border: 1px solid #050505;
           color: #ffffff;
-          background: #2563eb;
-          box-shadow: 0 16px 34px rgba(37, 99, 235, 0.32);
+          background: #050505;
+          box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
         }
 
         .splash-btn-primary:hover {
           transform: translateY(-2px);
-          box-shadow: 0 20px 42px rgba(37, 99, 235, 0.38);
+          background: #111111;
+          box-shadow: 0 20px 42px rgba(0, 0, 0, 0.3);
         }
 
         .splash-btn-secondary {
-          color: #0f172a;
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+          color: #050505;
+          background: #f7f7f5;
+          border: 1px solid rgba(5, 5, 5, 0.08);
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
         }
 
         .splash-btn-secondary:hover {
           transform: translateY(-2px);
-          background: #f8fafc;
+          background: #ffffff;
+        }
+
+        @media (min-width: 1600px) {
+          .spline-watermark-cover {
+            height: 100px;
+          }
+
+          .spline-watermark-cover::after {
+            bottom: 100px;
+            width: 300px;
+            height: 180px;
+          }
+
+          .splash-glass {
+            bottom: 118px;
+          }
+        }
+
+        @media (max-width: 1400px) {
+          .spline-watermark-cover {
+            height: 86px;
+          }
+
+          .spline-watermark-cover::after {
+            bottom: 86px;
+            width: 220px;
+            height: 135px;
+          }
         }
 
         @media (max-width: 900px) {
@@ -178,7 +199,7 @@ export default function SplashScreen() {
           }
 
           .splash-glass {
-            bottom: 48px;
+            bottom: 96px;
           }
         }
 
@@ -187,15 +208,25 @@ export default function SplashScreen() {
             transform: scale(1.38) translateY(-78px);
           }
 
+          .spline-watermark-cover {
+            height: 64px;
+          }
+
+          .spline-watermark-cover::after {
+            bottom: 64px;
+            width: 145px;
+            height: 95px;
+          }
+
           .splash-glass {
-            bottom: 26px;
+            bottom: 78px;
             width: calc(100% - 28px);
-            padding: 21px 16px 18px;
+            padding: 25px 16px 18px;
             border-radius: 25px;
           }
 
           .splash-soft-shadow {
-            bottom: 12px;
+            bottom: 55px;
             width: calc(100% - 20px);
           }
 
@@ -216,11 +247,6 @@ export default function SplashScreen() {
             width: 100%;
             padding: 14px 18px;
           }
-
-          .spline-watermark-cover {
-            width: 170px;
-            height: 58px;
-          }
         }
 
         @media (max-width: 420px) {
@@ -231,11 +257,6 @@ export default function SplashScreen() {
           .splash-title {
             font-size: 28px;
           }
-
-          .splash-badge {
-            font-size: 11px;
-            padding: 7px 11px;
-          }
         }
       `}</style>
 
@@ -244,21 +265,16 @@ export default function SplashScreen() {
           <Spline scene="https://prod.spline.design/0R8IV1ejIFlNrd1l/scene.splinecode" />
         </div>
 
-        <div className="spline-watermark-cover" />
         <div className="splash-soft-shadow" />
+        <div className="spline-watermark-cover" />
 
         <section className="splash-glass">
-          <div className="splash-badge">
-            <span className="splash-dot" />
-            Adaptive learning platform
-          </div>
-
           <h1 className="splash-title">
             School<span>Bridge</span>
           </h1>
 
           <p className="splash-text">
-            Helping teachers identify learning gaps and support students more clearly.
+            Ndihmon mesimdhenesit te identifikojne boshllëqet ne mesim dhe t’i mbeshtesin nxenesit me qarte.
           </p>
 
           <div className="splash-actions">
@@ -267,7 +283,7 @@ export default function SplashScreen() {
               className="splash-btn splash-btn-primary"
               onClick={() => navigate("/login")}
             >
-              Get Started
+              Fillo tani
             </button>
 
             <button
@@ -275,7 +291,7 @@ export default function SplashScreen() {
               className="splash-btn splash-btn-secondary"
               onClick={() => navigate("/register")}
             >
-              Create Account
+              Krijo llogari
             </button>
           </div>
         </section>
