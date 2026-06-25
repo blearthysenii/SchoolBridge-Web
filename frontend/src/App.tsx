@@ -13,6 +13,10 @@ import TestDetails from "./pages/TestDetails";
 import StudentResults from "./pages/StudentResults";
 import SubmitResults from "./pages/SubmitResults";
 import TestAnalytics from "./pages/TestAnalytics";
+import InactiveStudents from "./pages/InactiveStudents";
+import InactiveSubjects from "./pages/InactiveSubjects";
+import InactiveConcepts from "./pages/InactiveConcepts";
+import ArchivedTests from "./pages/ArchivedTests";
 
 function App() {
   return (
@@ -83,6 +87,38 @@ function App() {
           element={
             <ProtectedRoute>
               <TestAnalytics />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inactive-students"
+          element={
+            <ProtectedRoute>
+              <InactiveStudents />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inactive-subjects"
+          element={
+            <ProtectedRoute>
+              <InactiveSubjects />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inactive-concepts"
+          element={
+            <ProtectedRoute>
+              <InactiveConcepts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/archived-tests"
+          element={
+            <ProtectedRoute>
+              <ArchivedTests />
             </ProtectedRoute>
           }
         />

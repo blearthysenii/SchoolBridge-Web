@@ -42,6 +42,21 @@ const navItems = [
   },
 ];
 
+const archiveNavIcon = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="4" width="18" height="4" rx="1" />
+    <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8" />
+    <path d="M10 13h4" />
+  </svg>
+);
+
+const archiveNavItems = [
+  { label: "Nxënës joaktivë", path: "/inactive-students", icon: archiveNavIcon },
+  { label: "Lëndë joaktive", path: "/inactive-subjects", icon: archiveNavIcon },
+  { label: "Koncepte joaktive", path: "/inactive-concepts", icon: archiveNavIcon },
+  { label: "Teste të arkivuara", path: "/archived-tests", icon: archiveNavIcon },
+];
+
 export default function Layout({ children, title, subtitle, backTo, backLabel, user, actions }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -138,6 +153,47 @@ export default function Layout({ children, title, subtitle, backTo, backLabel, u
             Menuja
           </div>
           {navItems.map((item) => {
+            const active = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "9px 16px",
+                  margin: "2px 8px",
+                  color: active ? "#FFFFFF" : "#94A3B8",
+                  textDecoration: "none",
+                  background: active ? "rgba(15,118,110,0.22)" : "transparent",
+                  borderRadius: "8px",
+                  fontSize: "13.5px",
+                  fontWeight: active ? 600 : 400,
+                  transition: "all 0.15s",
+                  borderLeft: active ? "3px solid #14B8A6" : "3px solid transparent",
+                }}
+              >
+                {item.icon}
+                {item.label}
+              </Link>
+            );
+          })}
+
+          <div
+            style={{
+              padding: "16px 16px 4px",
+              fontSize: "10px",
+              fontWeight: 700,
+              color: "#475569",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            Arkivi
+          </div>
+          {archiveNavItems.map((item) => {
             const active = location.pathname === item.path;
             return (
               <Link
