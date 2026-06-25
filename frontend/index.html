@@ -8,6 +8,15 @@
   </head>
   <body>
     <div id="root"></div>
+    <div id="sb-boot-loader" style="position:fixed;inset:0;z-index:9999;background:#ffffff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;">
+      <img src="/logo.png" alt="SchoolBridge" style="height:36px;width:auto;object-fit:contain;margin-bottom:4px;" onerror="this.style.display='none'" />
+      <span style="font-size:15px;font-weight:700;color:#0F172A;letter-spacing:-0.2px;">SchoolBridge</span>
+      <div style="width:28px;height:28px;margin-top:10px;border:3px solid rgba(37,99,235,0.12);border-top-color:#2563EB;border-radius:50%;animation:sb-boot-spin 0.75s linear infinite;"></div>
+      <span style="font-size:12.5px;color:#94A3B8;font-weight:500;">Duke ngarkuar…</span>
+    </div>
+    <style>
+      @keyframes sb-boot-spin { to { transform: rotate(360deg); } }
+    </style>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
