@@ -279,6 +279,7 @@ function TestAnalytics() {
             </div>
 
             {analytics.student_ranking.length > 0 ? (
+              <div style={{ overflowX: "auto" }}>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -320,6 +321,7 @@ function TestAnalytics() {
                   ))}
                 </tbody>
               </table>
+              </div>
             ) : (
               <div className="empty-state">
                 <strong>Asnjë rezultat ende</strong>
@@ -360,6 +362,7 @@ function TestAnalytics() {
                   </ResponsiveContainer>
                 </div>
 
+                <div style={{ overflowX: "auto" }}>
                 <table className="data-table" style={{ marginTop: 16 }}>
                   <thead>
                     <tr>
@@ -382,6 +385,7 @@ function TestAnalytics() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </>
             ) : (
               <div className="empty-state">
@@ -425,7 +429,7 @@ function TestAnalytics() {
                       <div style={{ marginTop: 8 }}><RateBar rate={c.success_rate} /></div>
                       <div className="concept-card-counts">
                         <span style={{ fontSize: 12, color: "#22c55e", fontWeight: 600 }}>✓ {c.correct}</span>
-                        <span style={{ fontSize: 12, color: "#ef4444", fontWeight: 600 }}>✗ {c.incorrect ?? c.total - c.correct}</span>
+                        <span style={{ fontSize: 12, color: "#ef4444", fontWeight: 600 }}>✗ {c.total - c.correct}</span>
                         <span style={{ fontSize: 12, color: "#94a3b8" }}>{c.total} gjithsej</span>
                       </div>
                     </div>
