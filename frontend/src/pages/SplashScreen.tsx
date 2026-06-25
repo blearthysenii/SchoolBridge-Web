@@ -7,252 +7,333 @@ export default function SplashScreen() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-        :root {
-          --splash-bg: #1b1b1b;
-        }
+  :root {
+    --splash-bg: #1b1b1b;
+  }
 
-        .splash-root {
-          position: fixed;
-          inset: 0;
-          width: 100vw;
-          height: 100vh;
-          height: 100svh;
-          overflow: hidden;
-          background: var(--splash-bg);
-          font-family: 'Inter', sans-serif;
-        }
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--splash-bg);
+    overscroll-behavior: none;
+  }
 
-        .spline-scene {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          transform: scale(1.05) translateY(-28px);
-          z-index: 1;
-        }
+  * {
+    box-sizing: border-box;
+  }
 
-        .spline-scene canvas {
-          width: 100% !important;
-          height: 100% !important;
-        }
+  .splash-root {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100svh;
+    overflow: hidden;
+    background: var(--splash-bg);
+    font-family: 'Inter', sans-serif;
+    overscroll-behavior: none;
+    touch-action: pan-y;
+  }
 
-        .spline-watermark-cover {
-          position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          height: 92px;
-          background: var(--splash-bg);
-          z-index: 99999;
-          pointer-events: none;
-        }
+  .spline-scene {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    transform: scale(1.05) translateY(-28px);
+    transform-origin: center center;
+    z-index: 1;
+  }
 
-        .spline-watermark-cover::after {
-          content: "";
-          position: absolute;
-          right: 0;
-          bottom: 92px;
-          width: 270px;
-          height: 170px;
-          background: var(--splash-bg);
-        }
+  .spline-scene canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
 
-        .splash-soft-shadow {
-          position: absolute;
-          left: 50%;
-          bottom: 52px;
-          transform: translateX(-50%);
-          width: min(92%, 520px);
-          height: 210px;
-          border-radius: 34px;
-          background: rgba(0, 0, 0, 0.22);
-          filter: blur(42px);
-          z-index: 3;
-          pointer-events: none;
-        }
+  .spline-watermark-cover {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 92px;
+    background: var(--splash-bg);
+    z-index: 99999;
+    pointer-events: none;
+  }
 
-        .splash-glass {
-          position: absolute;
-          left: 50%;
-          bottom: 96px;
-          transform: translateX(-50%);
-          width: min(92%, 480px);
-          padding: 30px 24px 24px;
-          border-radius: 30px;
-          background: rgba(255, 255, 255, 0.78);
-          border: 1px solid rgba(255, 255, 255, 0.95);
-          box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
-          backdrop-filter: blur(18px);
-          -webkit-backdrop-filter: blur(18px);
-          z-index: 10;
-          text-align: center;
-          animation: card-up 0.75s ease both;
-        }
+  .spline-watermark-cover::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 92px;
+    width: 270px;
+    height: 170px;
+    background: var(--splash-bg);
+  }
 
-        @keyframes card-up {
-          from {
-            opacity: 0;
-            transform: translate(-50%, 22px);
-          }
-          to {
-            opacity: 1;
-            transform: translate(-50%, 0);
-          }
-        }
+  .splash-soft-shadow {
+    position: absolute;
+    left: 50%;
+    bottom: 52px;
+    transform: translateX(-50%);
+    width: min(92%, 520px);
+    height: 210px;
+    border-radius: 34px;
+    background: rgba(0, 0, 0, 0.22);
+    filter: blur(42px);
+    z-index: 3;
+    pointer-events: none;
+  }
 
-        .splash-title {
-          margin: 0;
-          font-size: 40px;
-          font-weight: 800;
-          letter-spacing: -0.045em;
-          line-height: 1.05;
-          color: #050505;
-        }
+  .splash-glass {
+    position: absolute;
+    left: 50%;
+    bottom: 96px;
+    transform: translateX(-50%);
+    width: min(92%, 480px);
+    padding: 30px 24px 24px;
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    z-index: 10;
+    text-align: center;
+    animation: card-up 0.75s ease both;
+  }
 
-        .splash-title span {
-          color: #050505;
-        }
+  @keyframes card-up {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 22px);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
 
-        .splash-text {
-          margin: 14px auto 24px;
-          max-width: 360px;
-          color: #475569;
-          font-size: 14px;
-          font-weight: 500;
-          line-height: 1.65;
-        }
+  .splash-title {
+    margin: 0;
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 1.05;
+    color: #050505;
+  }
 
-        .splash-actions {
-          display: flex;
-          justify-content: center;
-          gap: 12px;
-        }
+  .splash-title span {
+    color: #050505;
+  }
 
-        .splash-btn {
-          border-radius: 16px;
-          padding: 13px 24px;
-          font-size: 14px;
-          font-weight: 800;
-          cursor: pointer;
-          transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-          outline: none;
-        }
+  .splash-text {
+    margin: 14px auto 24px;
+    max-width: 360px;
+    color: #475569;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.65;
+  }
 
-        .splash-btn-primary {
-          border: 1px solid #050505;
-          color: #ffffff;
-          background: #050505;
-          box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
-        }
+  .splash-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
 
-        .splash-btn-primary:hover {
-          transform: translateY(-2px);
-          background: #111111;
-          box-shadow: 0 20px 42px rgba(0, 0, 0, 0.3);
-        }
+  .splash-btn {
+    border-radius: 16px;
+    padding: 13px 24px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    outline: none;
+    white-space: nowrap;
+  }
 
-        .splash-btn-secondary {
-          color: #050505;
-          background: #f7f7f5;
-          border: 1px solid rgba(5, 5, 5, 0.08);
-          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
-        }
+  .splash-btn-primary {
+    border: 1px solid #050505;
+    color: #ffffff;
+    background: #050505;
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+  }
 
-        .splash-btn-secondary:hover {
-          transform: translateY(-2px);
-          background: #ffffff;
-        }
+  .splash-btn-primary:hover {
+    transform: translateY(-2px);
+    background: #111111;
+    box-shadow: 0 20px 42px rgba(0, 0, 0, 0.3);
+  }
 
-        @media (min-width: 1600px) {
-          .spline-watermark-cover {
-            height: 100px;
-          }
+  .splash-btn-secondary {
+    color: #050505;
+    background: #f7f7f5;
+    border: 1px solid rgba(5, 5, 5, 0.08);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  }
 
-          .spline-watermark-cover::after {
-            bottom: 100px;
-            width: 320px;
-            height: 190px;
-          }
+  .splash-btn-secondary:hover {
+    transform: translateY(-2px);
+    background: #ffffff;
+  }
 
-          .splash-glass {
-            bottom: 106px;
-          }
-        }
+  @media (min-width: 1600px) {
+    .spline-watermark-cover {
+      height: 100px;
+    }
 
-        @media (max-width: 1400px) and (min-width: 769px) {
-          .spline-watermark-cover {
-            height: 86px;
-          }
+    .spline-watermark-cover::after {
+      bottom: 100px;
+      width: 320px;
+      height: 190px;
+    }
 
-          .spline-watermark-cover::after {
-            bottom: 86px;
-            width: 230px;
-            height: 145px;
-          }
+    .splash-glass {
+      bottom: 106px;
+    }
+  }
 
-          .splash-glass {
-            bottom: 92px;
-          }
-        }
+  @media (max-width: 1400px) and (min-width: 769px) {
+    .spline-watermark-cover {
+      height: 86px;
+    }
 
-        @media (max-width: 900px) {
-          .spline-scene {
-            transform: scale(1.22) translateY(-52px);
-          }
-        }
+    .spline-watermark-cover::after {
+      bottom: 86px;
+      width: 230px;
+      height: 145px;
+    }
 
-        @media (max-width: 768px) {
-          .spline-watermark-cover {
-            display: none;
-          }
+    .splash-glass {
+      bottom: 92px;
+    }
+  }
 
-          .spline-scene {
-            transform: scale(1.28) translateY(-42px);
-          }
+  @media (max-width: 900px) {
+    .spline-scene {
+      transform: scale(1.22) translateY(-52px);
+    }
+  }
 
-          .splash-glass {
-            bottom: max(22px, env(safe-area-inset-bottom));
-            width: calc(100% - 28px);
-            padding: 25px 16px 18px;
-            border-radius: 25px;
-          }
+  @media (max-width: 768px) {
+    .spline-watermark-cover {
+      display: none;
+    }
 
-          .splash-soft-shadow {
-            bottom: 12px;
-            width: calc(100% - 20px);
-          }
+    .spline-scene {
+      transform: scale(1.16) translateY(-26px);
+    }
 
-          .splash-title {
-            font-size: 31px;
-          }
+    .splash-glass {
+      left: 1px;
+      right: 1px;
+      bottom: 0;
+      transform: none;
+      width: auto;
+      max-width: none;
+      padding: 26px 18px calc(22px + env(safe-area-inset-bottom));
+      border-radius: 30px 30px 0 0;
+      border-left: 1px solid rgba(255, 255, 255, 0.95);
+      border-right: 1px solid rgba(255, 255, 255, 0.95);
+      border-top: 1px solid rgba(255, 255, 255, 0.95);
+      border-bottom: 0;
+      overflow: hidden;
+    }
 
-          .splash-text {
-            font-size: 13px;
-            margin-bottom: 18px;
-          }
+    @keyframes mobile-card-up {
+      from {
+        opacity: 0;
+        transform: translateY(22px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-          .splash-actions {
-            flex-direction: column;
-          }
+    .splash-glass {
+      animation: mobile-card-up 0.75s ease both;
+    }
 
-          .splash-btn {
-            width: 100%;
-            padding: 14px 18px;
-          }
-        }
+    .splash-soft-shadow {
+      left: 1px;
+      right: 1px;
+      bottom: 0;
+      transform: none;
+      width: auto;
+      height: 190px;
+    }
 
-        @media (max-width: 420px) {
-          .spline-scene {
-            transform: scale(1.42) translateY(-58px);
-          }
+    .splash-title {
+      font-size: clamp(30px, 8vw, 36px);
+      letter-spacing: -0.05em;
+    }
 
-          .splash-title {
-            font-size: 28px;
-          }
-        }
-      `}</style>
+    .splash-text {
+      max-width: 310px;
+      font-size: 13px;
+      line-height: 1.55;
+      margin: 12px auto 18px;
+    }
+
+    .splash-actions {
+      flex-direction: column;
+      width: 100%;
+      gap: 11px;
+    }
+
+    .splash-btn {
+      width: 100%;
+      min-width: 0;
+      padding: 14px 18px;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .spline-scene {
+      transform: scale(1.22) translateY(-34px);
+    }
+
+    .splash-title {
+      font-size: 31px;
+    }
+
+    .splash-text {
+      font-size: 12.8px;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .splash-glass {
+      left: 1px;
+      right: 1px;
+      padding-left: 14px;
+      padding-right: 14px;
+    }
+
+    .splash-soft-shadow {
+      left: 1px;
+      right: 1px;
+    }
+
+    .splash-title {
+      font-size: 28px;
+    }
+
+    .splash-text {
+      font-size: 12px;
+    }
+  }
+`}</style>
 
       <main className="splash-root">
         <div className="spline-scene">
