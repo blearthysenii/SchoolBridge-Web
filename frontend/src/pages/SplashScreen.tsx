@@ -9,8 +9,8 @@ export default function SplashScreen() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-        :root{
-          --bg-color:#1B1B1B;
+        :root {
+          --splash-bg: #1b1b1b;
         }
 
         .splash-root {
@@ -20,7 +20,7 @@ export default function SplashScreen() {
           height: 100vh;
           height: 100svh;
           overflow: hidden;
-          background:var(--bg-color);
+          background: var(--splash-bg);
           font-family: 'Inter', sans-serif;
         }
 
@@ -38,31 +38,31 @@ export default function SplashScreen() {
           height: 100% !important;
         }
 
-        .spline-watermark-cover{
-          position:fixed;
-          left:0;
-          right:0;
-          bottom:0;
-          height:90px;
-          background:var(--bg-color);
-          z-index:99999;
-          pointer-events:none;
+        .spline-watermark-cover {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 92px;
+          background: var(--splash-bg);
+          z-index: 99999;
+          pointer-events: none;
         }
 
-        .spline-watermark-cover::after{
-          content:"";
-          position:absolute;
-          right:0;
-          bottom:90px;
-          width:240px;
-          height:160px;
-          background:var(--bg-color);
+        .spline-watermark-cover::after {
+          content: "";
+          position: absolute;
+          right: 0;
+          bottom: 92px;
+          width: 270px;
+          height: 170px;
+          background: var(--splash-bg);
         }
 
         .splash-soft-shadow {
           position: absolute;
           left: 50%;
-          bottom: 72px;
+          bottom: 52px;
           transform: translateX(-50%);
           width: min(92%, 520px);
           height: 210px;
@@ -76,7 +76,7 @@ export default function SplashScreen() {
         .splash-glass {
           position: absolute;
           left: 50%;
-          bottom: 105px;
+          bottom: 96px;
           transform: translateX(-50%);
           width: min(92%, 480px);
           padding: 30px 24px 24px;
@@ -172,24 +172,28 @@ export default function SplashScreen() {
 
           .spline-watermark-cover::after {
             bottom: 100px;
-            width: 300px;
-            height: 180px;
+            width: 320px;
+            height: 190px;
           }
 
           .splash-glass {
-            bottom: 118px;
+            bottom: 106px;
           }
         }
 
-        @media (max-width: 1400px) {
+        @media (max-width: 1400px) and (min-width: 769px) {
           .spline-watermark-cover {
             height: 86px;
           }
 
           .spline-watermark-cover::after {
             bottom: 86px;
-            width: 220px;
-            height: 135px;
+            width: 230px;
+            height: 145px;
+          }
+
+          .splash-glass {
+            bottom: 92px;
           }
         }
 
@@ -197,36 +201,26 @@ export default function SplashScreen() {
           .spline-scene {
             transform: scale(1.22) translateY(-52px);
           }
-
-          .splash-glass {
-            bottom: 96px;
-          }
         }
 
         @media (max-width: 768px) {
-          .spline-scene {
-            transform: scale(1.38) translateY(-78px);
-          }
-
           .spline-watermark-cover {
-            height: 64px;
+            display: none;
           }
 
-          .spline-watermark-cover::after {
-            bottom: 64px;
-            width: 145px;
-            height: 95px;
+          .spline-scene {
+            transform: scale(1.28) translateY(-42px);
           }
 
           .splash-glass {
-            bottom: 78px;
+            bottom: max(22px, env(safe-area-inset-bottom));
             width: calc(100% - 28px);
             padding: 25px 16px 18px;
             border-radius: 25px;
           }
 
           .splash-soft-shadow {
-            bottom: 55px;
+            bottom: 12px;
             width: calc(100% - 20px);
           }
 
@@ -251,7 +245,7 @@ export default function SplashScreen() {
 
         @media (max-width: 420px) {
           .spline-scene {
-            transform: scale(1.58) translateY(-95px);
+            transform: scale(1.42) translateY(-58px);
           }
 
           .splash-title {
@@ -274,7 +268,7 @@ export default function SplashScreen() {
           </h1>
 
           <p className="splash-text">
-            Ndihmon mesimdhenesit te identifikojne boshllëqet ne mesim dhe t’i mbeshtesin nxenesit me qarte.
+            Ndihmon mesimdhenesit te identifikojne boshlleqet ne mesim dhe t’i mbeshtesin nxenesit me qarte.
           </p>
 
           <div className="splash-actions">
