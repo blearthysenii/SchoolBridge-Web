@@ -20,6 +20,30 @@ export const getTestById = async (testId: number) => {
   });
 };
 
+export const getArchivedTests = async () => {
+  const token = localStorage.getItem("token");
+
+  return await api.get("/tests/archived", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
+export const updateTestStatus = async (testId: number, status: "draft" | "published" | "archived") => {
+  const token = localStorage.getItem("token");
+
+  return await api.put(
+    `/tests/${testId}/status`,
+    { status },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+};
+
 export const createTest = async (
   title: string,
   classroomId: number,
