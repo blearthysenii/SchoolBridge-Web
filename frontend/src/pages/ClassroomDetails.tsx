@@ -1,21 +1,26 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 
+import Alert from "../components/Alert";
+
 import {
   createStudent,
   getStudentsByClassroom,
-  deleteStudent,
+  updateStudent,
+  deactivateStudent,
 } from "../services/studentService";
 
 import {
   createSubject,
   getSubjectsByClassroom,
+  updateSubject,
   deleteSubject,
 } from "../services/subjectService";
 
 import {
   createConcept,
   getConceptsBySubject,
+  updateConcept,
   deleteConcept,
 } from "../services/conceptService";
 
@@ -52,7 +57,15 @@ type Test = {
   subject_id: number;
 };
 
-type ModalType = "student" | "subject" | "concept" | "test" | null;
+type ModalType =
+  | "student"
+  | "subject"
+  | "concept"
+  | "test"
+  | "editStudent"
+  | "editSubject"
+  | "editConcept"
+  | null;
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 function IconBack() {
@@ -83,6 +96,23 @@ function IconTrash() {
       <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
       <path d="M10 11v6M14 11v6" />
       <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </svg>
+  );
+}
+function IconEdit() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+    </svg>
+  );
+}
+function IconArchive() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="4" rx="1" />
+      <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8" />
+      <path d="M10 13h4" />
     </svg>
   );
 }
@@ -242,6 +272,8 @@ function ClassroomDetails() {
   const [formError, setFormError] = useState("");
   const [activeTab, setActiveTab] = useState<"students" | "subjects" | "concepts" | "tests">("students");
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [banner, setBanner] = useState<{ type: "success" | "info" | "error"; text: string } | null>(null);
 
   // ── Loaders ──
   const loadStudents = async () => {
@@ -271,13 +303,44 @@ function ClassroomDetails() {
 
   useEffect(() => { refreshData(); }, [id]);
 
+  useEffect(() => {
+    if (!banner) return;
+    const t = setTimeout(() => setBanner(null), 4000);
+    return () => clearTimeout(t);
+  }, [banner]);
+
   const openModal = (type: ModalType) => {
     setFormError("");
+    setEditingId(null);
+    if (type === "student") { setFullName(""); setPersonalNumber(""); setDateBirth(""); }
+    if (type === "subject") setSubjectName("");
+    if (type === "concept") setConceptName("");
     setActiveModal(type);
   };
   const closeModal = () => {
     setActiveModal(null);
     setFormError("");
+    setEditingId(null);
+  };
+
+  const openEditStudent = (s: Student) => {
+    setEditingId(s.id);
+    setFullName(s.full_name);
+    setPersonalNumber(s.personal_number);
+    setDateBirth(s.date_birth ? s.date_birth.slice(0, 10) : "");
+    openModal("editStudent");
+  };
+
+  const openEditSubject = (s: Subject) => {
+    setEditingId(s.id);
+    setSubjectName(s.name);
+    openModal("editSubject");
+  };
+
+  const openEditConcept = (c: Concept) => {
+    setEditingId(c.id);
+    setConceptName(c.name);
+    openModal("editConcept");
   };
 
   // ── Handlers ──
@@ -344,36 +407,96 @@ function ClassroomDetails() {
     } finally { setSubmitting(false); }
   };
 
-  const handleDeleteStudent = async (studentId: number) => {
+  const handleUpdateStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingId) return;
+    setSubmitting(true); setFormError("");
+    try {
+      await updateStudent(editingId, {
+        full_name: fullName,
+        personal_number: personalNumber,
+        date_birth: dateBirth || null,
+      });
+      setFullName(""); setPersonalNumber(""); setDateBirth("");
+      await loadStudents();
+      closeModal();
+      setBanner({ type: "success", text: "Nxënësi u përditësua me sukses." });
+    } catch (err: any) {
+      setFormError(err.response?.data?.detail || "Dështoi përditësimi i nxënësit.");
+    } finally { setSubmitting(false); }
+  };
+
+  const handleDeactivateStudent = async (studentId: number) => {
     setDeletingId(studentId);
-    try { await deleteStudent(studentId); await loadStudents(); }
-    catch (err: any) { alert(err.response?.data?.detail || "Dështoi fshirja."); }
+    try {
+      await deactivateStudent(studentId);
+      await loadStudents();
+      setBanner({ type: "info", text: "Nxënësi u bë joaktiv. Mund ta riaktivizoni nga skeda e nxënësve joaktivë." });
+    } catch (err: any) { setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi çaktivizimi." }); }
     finally { setDeletingId(null); }
+  };
+
+  const handleUpdateSubject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingId) return;
+    setSubmitting(true); setFormError("");
+    try {
+      await updateSubject(editingId, subjectName);
+      setSubjectName("");
+      await loadSubjects();
+      closeModal();
+      setBanner({ type: "success", text: "Lënda u riemërua me sukses." });
+    } catch (err: any) {
+      setFormError(err.response?.data?.detail || "Dështoi riemërimi i lëndës.");
+    } finally { setSubmitting(false); }
   };
 
   const handleDeleteSubject = async (subjectId: number) => {
     setDeletingId(subjectId);
     try {
-      await deleteSubject(subjectId);
+      const res = await deleteSubject(subjectId);
       await loadSubjects();
       if (selectedSubjectId === subjectId) { setSelectedSubjectId(""); setConcepts([]); }
-    } catch (err: any) { alert(err.response?.data?.detail || "Dështoi fshirja."); }
+      const softDeleted = res.data?.message?.includes("joaktive");
+      setBanner({ type: softDeleted ? "info" : "success", text: res.data?.message || "Lënda u fshi me sukses." });
+    } catch (err: any) { setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi fshirja." }); }
     finally { setDeletingId(null); }
+  };
+
+  const handleUpdateConcept = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingId) return;
+    setSubmitting(true); setFormError("");
+    try {
+      await updateConcept(editingId, conceptName);
+      setConceptName("");
+      if (selectedSubjectId) await loadConcepts(Number(selectedSubjectId));
+      closeModal();
+      setBanner({ type: "success", text: "Koncepti u riemërua me sukses." });
+    } catch (err: any) {
+      setFormError(err.response?.data?.detail || "Dështoi riemërimi i konceptit.");
+    } finally { setSubmitting(false); }
   };
 
   const handleDeleteConcept = async (conceptId: number) => {
     setDeletingId(conceptId);
     try {
-      await deleteConcept(conceptId);
+      const res = await deleteConcept(conceptId);
       if (selectedSubjectId) await loadConcepts(Number(selectedSubjectId));
-    } catch (err: any) { alert(err.response?.data?.detail || "Dështoi fshirja."); }
+      const softDeleted = res.data?.message?.includes("joaktiv");
+      setBanner({ type: softDeleted ? "info" : "success", text: res.data?.message || "Koncepti u fshi me sukses." });
+    } catch (err: any) { setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi fshirja." }); }
     finally { setDeletingId(null); }
   };
 
   const handleDeleteTest = async (testId: number) => {
     setDeletingId(testId);
-    try { await deleteTest(testId); await loadTests(); }
-    catch (err: any) { alert(err.response?.data?.detail || "Dështoi fshirja."); }
+    try {
+      const res = await deleteTest(testId);
+      await loadTests();
+      const archived = res.data?.message?.includes("arkivua");
+      setBanner({ type: archived ? "info" : "success", text: res.data?.message || "Testi u fshi me sukses." });
+    } catch (err: any) { setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi fshirja." }); }
     finally { setDeletingId(null); }
   };
 
@@ -496,6 +619,33 @@ function ClassroomDetails() {
         }
         .btn-delete:hover { background: #fff1f2; color: #e11d48; border-color: #fecdd3; }
         .btn-delete:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .btn-edit {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
+          color: #64748b; background: none; border: 1px solid #e2e8f0;
+          cursor: pointer; transition: all 0.12s; margin-right: 6px;
+        }
+        .btn-edit:hover { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+        .btn-edit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .btn-archive {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
+          color: #64748b; background: none; border: 1px solid #e2e8f0;
+          cursor: pointer; transition: all 0.12s; margin-right: 6px;
+        }
+        .btn-archive:hover { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+        .btn-archive:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .inactive-link {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 12.5px; font-weight: 600; color: #64748b;
+          padding: 7px 12px; border-radius: 7px; border: 1px solid #e2e8f0;
+          background: #fff; cursor: pointer; transition: all 0.12s;
+        }
+        .inactive-link:hover { background: #f1f5f9; color: #0f172a; }
+        .section-actions-row { display: flex; justify-content: flex-end; margin-bottom: 12px; }
 
         /* SUBJECT SELECTOR for concepts tab */
         .subject-filter {
@@ -628,6 +778,14 @@ function ClassroomDetails() {
           </div>
         </div>
 
+        {banner && (
+          <Alert
+            type={banner.type}
+            message={banner.text}
+            onClose={() => setBanner(null)}
+          />
+        )}
+
         {/* TABS */}
         <div className="tabs">
           {tabs.map((t) => (
@@ -652,6 +810,12 @@ function ClassroomDetails() {
               onAdd={() => openModal("student")}
               addLabel="Shto nxënës"
             />
+            <div className="section-actions-row">
+              <button className="inactive-link" onClick={() => navigate("/inactive-students")}>
+                <IconArchive />
+                Nxënësit joaktivë
+              </button>
+            </div>
             {students.length > 0 ? (
               <table className="data-table">
                 <thead>
@@ -678,12 +842,23 @@ function ClassroomDetails() {
                       </td>
                       <td className="td-actions">
                         <button
+                          className="btn-edit"
+                          onClick={() => openEditStudent(s)}
+                        >
+                          <IconEdit />
+                          Ndrysho
+                        </button>
+                        <button
                           className="btn-delete"
-                          onClick={() => handleDeleteStudent(s.id)}
+                          onClick={() => {
+                            if (window.confirm(`Të çaktivizohet nxënësi "${s.full_name}"? Mund ta riaktivizoni më vonë.`)) {
+                              handleDeactivateStudent(s.id);
+                            }
+                          }}
                           disabled={deletingId === s.id}
                         >
-                          <IconTrash />
-                          {deletingId === s.id ? "…" : "Fshi"}
+                          <IconArchive />
+                          {deletingId === s.id ? "…" : "Çaktivizo"}
                         </button>
                       </td>
                     </tr>
@@ -706,6 +881,12 @@ function ClassroomDetails() {
               onAdd={() => openModal("subject")}
               addLabel="Shto lëndë"
             />
+            <div className="section-actions-row">
+              <button className="inactive-link" onClick={() => navigate("/inactive-subjects")}>
+                <IconArchive />
+                Lëndët joaktive
+              </button>
+            </div>
             {subjects.length > 0 ? (
               <table className="data-table">
                 <thead>
@@ -720,8 +901,19 @@ function ClassroomDetails() {
                       <td className="td-name">{s.name}</td>
                       <td className="td-actions">
                         <button
+                          className="btn-edit"
+                          onClick={() => openEditSubject(s)}
+                        >
+                          <IconEdit />
+                          Ndrysho
+                        </button>
+                        <button
                           className="btn-delete"
-                          onClick={() => handleDeleteSubject(s.id)}
+                          onClick={() => {
+                            if (window.confirm(`Të fshihet lënda "${s.name}"?`)) {
+                              handleDeleteSubject(s.id);
+                            }
+                          }}
                           disabled={deletingId === s.id}
                         >
                           <IconTrash />
@@ -748,6 +940,12 @@ function ClassroomDetails() {
               onAdd={() => openModal("concept")}
               addLabel="Shto koncept"
             />
+            <div className="section-actions-row">
+              <button className="inactive-link" onClick={() => navigate("/inactive-concepts")}>
+                <IconArchive />
+                Konceptet joaktive
+              </button>
+            </div>
 
             <div className="subject-filter">
               <label>Filtro sipas lëndës:</label>
@@ -778,8 +976,19 @@ function ClassroomDetails() {
                       <td className="td-name">{c.name}</td>
                       <td className="td-actions">
                         <button
+                          className="btn-edit"
+                          onClick={() => openEditConcept(c)}
+                        >
+                          <IconEdit />
+                          Ndrysho
+                        </button>
+                        <button
                           className="btn-delete"
-                          onClick={() => handleDeleteConcept(c.id)}
+                          onClick={() => {
+                            if (window.confirm(`Të fshihet koncepti "${c.name}"?`)) {
+                              handleDeleteConcept(c.id);
+                            }
+                          }}
                           disabled={deletingId === c.id}
                         >
                           <IconTrash />
@@ -806,6 +1015,12 @@ function ClassroomDetails() {
               onAdd={() => openModal("test")}
               addLabel="Shto test"
             />
+            <div className="section-actions-row">
+              <button className="inactive-link" onClick={() => navigate("/archived-tests")}>
+                <IconArchive />
+                Testet e arkivuara
+              </button>
+            </div>
             {tests.length > 0 ? (
               <table className="data-table">
                 <thead>
@@ -827,7 +1042,11 @@ function ClassroomDetails() {
                       <td className="td-actions">
                         <button
                           className="btn-delete"
-                          onClick={() => handleDeleteTest(t.id)}
+                          onClick={() => {
+                            if (window.confirm(`Të fshihet testi "${t.title}"?`)) {
+                              handleDeleteTest(t.id);
+                            }
+                          }}
                           disabled={deletingId === t.id}
                         >
                           <IconTrash />
@@ -933,6 +1152,62 @@ function ClassroomDetails() {
           <div className="form-group">
             <label className="form-label">Titulli i testit</label>
             <input className="form-input" type="text" placeholder="p.sh. Matematikë — Testi 1" value={testTitle} onChange={(e) => setTestTitle(e.target.value)} required />
+          </div>
+        </Modal>
+      )}
+
+      {activeModal === "editStudent" && (
+        <Modal
+          title="Ndrysho nxënësin"
+          onClose={closeModal}
+          onSubmit={handleUpdateStudent}
+          submitting={submitting}
+          error={formError}
+          submitLabel="Ruaj ndryshimet"
+        >
+          <div className="form-group">
+            <label className="form-label">Emri i plotë</label>
+            <input className="form-input" type="text" placeholder="p.sh. Artan Berisha" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Numri personal</label>
+            <input className="form-input" type="text" placeholder="Numri personal i nxënësit" value={personalNumber} onChange={(e) => setPersonalNumber(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Datëlindja <span style={{ color: "#94a3b8", fontWeight: 400 }}>(opcionale)</span></label>
+            <input className="form-input" type="date" value={dateBirth} onChange={(e) => setDateBirth(e.target.value)} />
+          </div>
+        </Modal>
+      )}
+
+      {activeModal === "editSubject" && (
+        <Modal
+          title="Ndrysho lëndën"
+          onClose={closeModal}
+          onSubmit={handleUpdateSubject}
+          submitting={submitting}
+          error={formError}
+          submitLabel="Ruaj ndryshimet"
+        >
+          <div className="form-group">
+            <label className="form-label">Emri i lëndës</label>
+            <input className="form-input" type="text" placeholder="p.sh. Matematikë" value={subjectName} onChange={(e) => setSubjectName(e.target.value)} required />
+          </div>
+        </Modal>
+      )}
+
+      {activeModal === "editConcept" && (
+        <Modal
+          title="Ndrysho konceptin"
+          onClose={closeModal}
+          onSubmit={handleUpdateConcept}
+          submitting={submitting}
+          error={formError}
+          submitLabel="Ruaj ndryshimet"
+        >
+          <div className="form-group">
+            <label className="form-label">Emri i konceptit</label>
+            <input className="form-input" type="text" placeholder="p.sh. Thyesat" value={conceptName} onChange={(e) => setConceptName(e.target.value)} required />
           </div>
         </Modal>
       )}
