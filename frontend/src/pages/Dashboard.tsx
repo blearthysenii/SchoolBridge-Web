@@ -117,6 +117,15 @@ function IconLogout() {
     </svg>
   );
 }
+function IconArchiveNav() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="4" rx="1" />
+      <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8" />
+      <path d="M10 13h4" />
+    </svg>
+  );
+}
 function IconMenu() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -230,6 +239,13 @@ function Dashboard() {
     { label: "Lëndët", icon: <IconSubjects />, active: false, to: "#" },
     { label: "Testet", icon: <IconTests />, active: false, to: "#" },
     { label: "Rezultatet", icon: <IconResults />, to: "/submit-results" },
+  ];
+
+  const archiveNavItems = [
+    { label: "Nxënës joaktivë", path: "/inactive-students" },
+    { label: "Lëndë joaktive", path: "/inactive-subjects" },
+    { label: "Koncepte joaktive", path: "/inactive-concepts" },
+    { label: "Teste të arkivuara", path: "/archived-tests" },
   ];
 
   const initials = user?.full_name
@@ -486,6 +502,19 @@ function Dashboard() {
                 </div>
               )
             )}
+
+            <div className="nav-label">Arkivi</div>
+            {archiveNavItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className="nav-item"
+                onClick={() => setSidebarOpen(false)}
+              >
+                <IconArchiveNav />
+                {item.label}
+              </Link>
+            ))}
           </div>
 
           <div className="sidebar-footer">
