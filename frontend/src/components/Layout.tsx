@@ -179,7 +179,7 @@ export default function Layout({ children, title, subtitle, backTo, backLabel, u
         *, *::before, *::after { box-sizing: border-box; }
         .sb-shell, .sb-shell * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 
-        .sb-shell { display: flex; min-height: 100vh; background: #F8FAFC; color: #0F172A; }
+        .sb-shell { display: flex; min-height: 100vh; background: #F8FAFC; color: #0F172A; width: 100%; max-width: 100vw; overflow-x: hidden; }
 
         .sb-sidebar-overlay {
           position: fixed; inset: 0; background: rgba(15,23,42,0.35);
@@ -239,7 +239,7 @@ export default function Layout({ children, title, subtitle, backTo, backLabel, u
         }
         .sb-logout-btn:hover { background: #FFF1F2; color: #E11D48; }
 
-        .sb-main { margin-left: 232px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+        .sb-main { margin-left: 232px; flex: 1; min-width: 0; max-width: 100%; display: flex; flex-direction: column; min-height: 100vh; }
 
         .sb-topbar {
           background: #FFFFFF; border-bottom: 1px solid #E2E8F0;
