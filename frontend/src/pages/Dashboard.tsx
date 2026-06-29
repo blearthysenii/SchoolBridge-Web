@@ -2,13 +2,15 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 import api from "../services/api";
-import { createClassroom, getClassrooms } from "../services/classroomService";
+import { createClassroom, deactivateClassroom, getClassrooms } from "../services/classroomService";
 import { getDashboardStats } from "../services/dashboardService";
 
 import Layout from "../components/Layout";
 import StatCard from "../components/StatCard";
 import EmptyState from "../components/EmptyState";
 import LoadingSpinner from "../components/LoadingSpinner";
+import Alert from "../components/Alert";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 type User = {
   id: number;
@@ -22,6 +24,7 @@ type Classroom = {
   name: string;
   grade: number;
   description?: string;
+  is_active?: boolean;
   created_at: string;
 };
 
@@ -95,6 +98,15 @@ function IconPlus() {
     </svg>
   );
 }
+function IconArchive() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="4" rx="1" />
+      <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8" />
+      <path d="M10 13h4" />
+    </svg>
+  );
+}
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -106,6 +118,9 @@ function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState("");
+  const [deactivatingId, setDeactivatingId] = useState<number | null>(null);
+  const [pendingClassroom, setPendingClassroom] = useState<Classroom | null>(null);
+  const [banner, setBanner] = useState<{ type: "success" | "info" | "error"; text: string } | null>(null);
 
   const [name, setName] = useState("");
   const [grade, setGrade] = useState(1);
@@ -173,6 +188,24 @@ function Dashboard() {
     }
   };
 
+  const handleDeactivateClassroom = async (classroom: Classroom) => {
+    setDeactivatingId(classroom.id);
+    try {
+      await deactivateClassroom(classroom.id);
+      setClassrooms((prev) => prev.filter((c) => c.id !== classroom.id));
+      await loadStats();
+      setBanner({
+        type: "info",
+        text: `Klasa "${classroom.name}" u çaktivizua. Mund ta aktivizoni prapë nga "Klasat jo aktive".`,
+      });
+    } catch (err: any) {
+      setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi çaktivizimi i klasës." });
+    } finally {
+      setDeactivatingId(null);
+      setPendingClassroom(null);
+    }
+  };
+
   return (
     <Layout
       title={user ? `Mirë se erdhe, ${user.full_name.split(" ")[0]}` : "Paneli kryesor"}
@@ -185,6 +218,8 @@ function Dashboard() {
         </button>
       }
     >
+      {banner && <Alert type={banner.type} message={banner.text} onClose={() => setBanner(null)} />}
+
       {loading ? (
         <LoadingSpinner text="Duke ngarkuar panelin…" />
       ) : (
@@ -203,19 +238,31 @@ function Dashboard() {
           {classrooms.length > 0 ? (
             <div className="db-classroom-grid">
               {classrooms.map((c) => (
-                <Link to={`/classrooms/${c.id}`} key={c.id} className="db-classroom-card">
-                  <div className="db-classroom-card-grade">Viti {c.grade}</div>
-                  <div className="db-classroom-card-name">{c.name}</div>
-                  {c.description && <div className="db-classroom-card-desc">{c.description}</div>}
-                  <div className="db-classroom-card-meta">
-                    Shtuar{" "}
-                    {new Date(c.created_at).toLocaleDateString("sq-AL", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                <div key={c.id} className="db-classroom-card">
+                  <Link to={`/classrooms/${c.id}`} className="db-classroom-card-main">
+                    <div className="db-classroom-card-grade">Viti {c.grade}</div>
+                    <div className="db-classroom-card-name">{c.name}</div>
+                    {c.description && <div className="db-classroom-card-desc">{c.description}</div>}
+                    <div className="db-classroom-card-meta">
+                      Shtuar{" "}
+                      {new Date(c.created_at).toLocaleDateString("sq-AL", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </div>
+                  </Link>
+                  <div className="db-classroom-card-actions">
+                    <button
+                      className="sb-btn sb-btn-warn-ghost"
+                      onClick={() => setPendingClassroom(c)}
+                      disabled={deactivatingId === c.id}
+                    >
+                      <IconArchive />
+                      {deactivatingId === c.id ? "..." : "Çaktivizo klasën"}
+                    </button>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           ) : (
@@ -299,21 +346,34 @@ function Dashboard() {
         </div>
       )}
 
+      {pendingClassroom && (
+        <ConfirmDialog
+          title="Çaktivizo klasën"
+          message={`Të çaktivizohet klasa "${pendingClassroom.name}"? Të dhënat e saj do të ruhen dhe mund ta aktivizoni prapë më vonë.`}
+          confirmLabel="Çaktivizo"
+          submitting={deactivatingId === pendingClassroom.id}
+          onCancel={() => setPendingClassroom(null)}
+          onConfirm={() => handleDeactivateClassroom(pendingClassroom)}
+        />
+      )}
+
       <style>{`
         .db-section-title { font-size: 13px; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px; }
         .db-section-title:not(:first-child) { margin-top: 28px; }
         .db-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
         .db-classroom-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
         .db-classroom-card {
-          display: block; background: #fff; border: 1px solid #E2E8F0; border-radius: 10px;
-          padding: 16px 18px; text-decoration: none; color: inherit;
+          display: flex; flex-direction: column; background: #fff; border: 1px solid #E2E8F0; border-radius: 10px;
+          overflow: hidden;
           transition: border-color 0.14s, box-shadow 0.14s;
         }
         .db-classroom-card:hover { border-color: #BFDBFE; box-shadow: 0 2px 8px rgba(37,99,235,0.08); }
+        .db-classroom-card-main { display: block; padding: 16px 18px 12px; text-decoration: none; color: inherit; flex: 1; }
         .db-classroom-card-grade { font-size: 11px; font-weight: 600; color: #2563EB; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
         .db-classroom-card-name { font-size: 15px; font-weight: 700; color: #0F172A; }
         .db-classroom-card-desc { font-size: 12.5px; color: #94A3B8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .db-classroom-card-meta { font-size: 11.5px; color: #CBD5E1; margin-top: 12px; }
+        .db-classroom-card-actions { display: flex; justify-content: flex-end; padding: 0 18px 14px; }
 
         @media (max-width: 768px) {
           .db-stats-grid { grid-template-columns: repeat(2, 1fr); }

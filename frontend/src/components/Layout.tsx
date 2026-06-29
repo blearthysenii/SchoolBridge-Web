@@ -57,6 +57,7 @@ const archiveNavIcon = (
 );
 
 const archiveNavItems = [
+  { label: "Klasat jo aktive", path: "/inactive-classrooms" },
   { label: "Nxënës joaktivë", path: "/inactive-students" },
   { label: "Lëndë joaktive", path: "/inactive-subjects" },
   { label: "Koncepte joaktive", path: "/inactive-concepts" },

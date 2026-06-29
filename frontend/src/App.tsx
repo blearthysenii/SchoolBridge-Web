@@ -16,6 +16,7 @@ const TestDetails = lazy(() => import("./pages/TestDetails"));
 const StudentResults = lazy(() => import("./pages/StudentResults"));
 const SubmitResults = lazy(() => import("./pages/SubmitResults"));
 const TestAnalytics = lazy(() => import("./pages/TestAnalytics"));
+const InactiveClassrooms = lazy(() => import("./pages/InactiveClassrooms"));
 const InactiveStudents = lazy(() => import("./pages/InactiveStudents"));
 const InactiveSubjects = lazy(() => import("./pages/InactiveSubjects"));
 const InactiveConcepts = lazy(() => import("./pages/InactiveConcepts"));
@@ -96,6 +97,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <TestAnalytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/inactive-classrooms"
+            element={
+              <ProtectedRoute>
+                <InactiveClassrooms />
               </ProtectedRoute>
             }
           />
