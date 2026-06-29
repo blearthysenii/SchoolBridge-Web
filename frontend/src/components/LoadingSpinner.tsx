@@ -13,14 +13,19 @@ export default function LoadingSpinner({ size = 32, text, fullPage }: LoadingSpi
         alignItems: "center",
         justifyContent: "center",
         gap: "12px",
-        padding: fullPage ? "0" : "40px",
+        padding: fullPage ? "0" : "42px",
+        borderRadius: fullPage ? undefined : "24px",
+        background: fullPage ? undefined : "rgba(255,255,255,0.48)",
+        border: fullPage ? undefined : "1px solid rgba(255,255,255,0.66)",
+        boxShadow: fullPage ? undefined : "0 14px 34px rgba(15,23,42,0.06)",
+        backdropFilter: fullPage ? undefined : "blur(16px)",
       }}
     >
       <div
         style={{
           width: size,
           height: size,
-          border: `3px solid rgba(37, 99, 235, 0.12)`,
+          border: `3px solid rgba(37, 99, 235, 0.14)`,
           borderTopColor: "#2563EB",
           borderRadius: "50%",
           animation: "sb-spin 0.75s linear infinite",
@@ -28,7 +33,7 @@ export default function LoadingSpinner({ size = 32, text, fullPage }: LoadingSpi
         }}
       />
       {text && (
-        <p style={{ color: "#64748B", fontSize: "13.5px", fontWeight: 500 }}>{text}</p>
+        <p style={{ color: "#64748B", fontSize: "13.5px", fontWeight: 700 }}>{text}</p>
       )}
     </div>
   );
@@ -42,8 +47,8 @@ export default function LoadingSpinner({ size = 32, text, fullPage }: LoadingSpi
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "rgba(255,255,255,0.85)",
-          backdropFilter: "blur(4px)",
+          background: "rgba(243,244,246,0.82)",
+          backdropFilter: "blur(12px)",
           zIndex: 9999,
         }}
       >

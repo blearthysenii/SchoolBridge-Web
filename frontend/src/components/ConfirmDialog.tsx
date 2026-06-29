@@ -57,37 +57,49 @@ export default function ConfirmDialog({
 
         <style>{`
           .cfd-overlay {
-            position: fixed; inset: 0; background: rgba(15,23,42,0.35);
+            position: fixed; inset: 0; background: rgba(15,23,42,0.34);
             display: flex; align-items: center; justify-content: center;
             z-index: 200; padding: 16px;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            backdrop-filter: blur(10px);
           }
           .cfd-modal {
-            background: #fff; border-radius: 12px; width: 100%; max-width: 380px;
-            box-shadow: 0 12px 40px rgba(15,23,42,0.16); padding: 24px;
+            background: rgba(255,255,255,0.84); border: 1px solid rgba(255,255,255,0.74);
+            border-radius: 24px; width: 100%; max-width: 390px;
+            box-shadow: 0 28px 76px rgba(15,23,42,0.22), inset 0 1px 0 rgba(255,255,255,0.86);
+            padding: 26px; backdrop-filter: blur(22px);
           }
           .cfd-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-          .cfd-title { font-size: 16px; font-weight: 700; color: #0F172A; }
-          .cfd-close { background: none; border: none; cursor: pointer; color: #94A3B8; padding: 2px; border-radius: 5px; }
-          .cfd-close:hover { color: #475569; background: #F1F5F9; }
+          .cfd-title { font-size: 16px; font-weight: 850; color: #0F172A; }
+          .cfd-close {
+            background: rgba(248,250,252,0.76); border: 1px solid rgba(226,232,240,0.82);
+            cursor: pointer; color: #94A3B8; padding: 6px; border-radius: 13px;
+            display: inline-flex; align-items: center; justify-content: center;
+            transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+          }
+          .cfd-close:hover { color: #475569; background: rgba(255,255,255,0.92); transform: translateY(-1px); }
           .cfd-message { font-size: 13.5px; color: #475569; line-height: 1.6; margin: 0; }
           .cfd-actions { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
           .cfd-btn {
             display: inline-flex; align-items: center; gap: 6px;
-            border-radius: 7px; font-size: 13px; font-weight: 600;
-            cursor: pointer; border: none; padding: 8px 16px;
-            transition: background 0.12s; white-space: nowrap;
+            border-radius: 15px; font-size: 13px; font-weight: 800;
+            cursor: pointer; border: 1px solid transparent; padding: 9px 16px;
+            transition: background 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+            white-space: nowrap;
           }
+          .cfd-btn:hover:not(:disabled) { transform: translateY(-1px); }
           .cfd-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-          .cfd-btn-secondary { background: #F1F5F9; color: #475569; }
-          .cfd-btn-secondary:hover:not(:disabled) { background: #E2E8F0; }
-          .cfd-btn-primary { background: #2563EB; color: #fff; }
-          .cfd-btn-primary:hover:not(:disabled) { background: #1D4ED8; }
-          .cfd-btn-danger { background: #DC2626; color: #fff; }
-          .cfd-btn-danger:hover:not(:disabled) { background: #B91C1C; }
+          .cfd-btn-secondary { background: rgba(255,255,255,0.66); color: #475569; border-color: rgba(226,232,240,0.86); }
+          .cfd-btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.94); }
+          .cfd-btn-primary { background: linear-gradient(135deg, #2563EB, #1D4ED8); color: #fff; box-shadow: 0 12px 26px rgba(37,99,235,0.22); }
+          .cfd-btn-primary:hover:not(:disabled) { background: linear-gradient(135deg, #1D4ED8, #1E40AF); }
+          .cfd-btn-danger { background: linear-gradient(135deg, #EF4444, #DC2626); color: #fff; box-shadow: 0 12px 24px rgba(220,38,38,0.18); }
+          .cfd-btn-danger:hover:not(:disabled) { background: linear-gradient(135deg, #DC2626, #B91C1C); }
 
           @media (max-width: 480px) {
-            .cfd-modal { padding: 20px; }
+            .cfd-modal { padding: 22px; border-radius: 22px; }
+            .cfd-actions { flex-direction: column-reverse; }
+            .cfd-actions .cfd-btn { width: 100%; justify-content: center; }
           }
         `}</style>
       </div>

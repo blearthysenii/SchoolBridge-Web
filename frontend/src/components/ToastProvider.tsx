@@ -39,10 +39,10 @@ const ICONS: Record<ToastType, React.ReactNode> = {
 };
 
 const COLORS: Record<ToastType, { bg: string; border: string; text: string; icon: string }> = {
-  success: { bg: "#ECFDF5", border: "#A7F3D0", text: "#065F46", icon: "#059669" },
-  error: { bg: "#FEF2F2", border: "#FECACA", text: "#991B1B", icon: "#DC2626" },
-  warning: { bg: "#FFFBEB", border: "#FDE68A", text: "#92400E", icon: "#D97706" },
-  info: { bg: "#EFF6FF", border: "#BFDBFE", text: "#1E40AF", icon: "#2563EB" },
+  success: { bg: "rgba(236, 253, 245, 0.82)", border: "rgba(167, 243, 208, 0.9)", text: "#065F46", icon: "#059669" },
+  error: { bg: "rgba(254, 242, 242, 0.82)", border: "rgba(254, 202, 202, 0.9)", text: "#991B1B", icon: "#DC2626" },
+  warning: { bg: "rgba(255, 251, 235, 0.84)", border: "rgba(253, 230, 138, 0.92)", text: "#92400E", icon: "#D97706" },
+  info: { bg: "rgba(239, 246, 255, 0.84)", border: "rgba(191, 219, 254, 0.92)", text: "#1E40AF", icon: "#2563EB" },
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -89,17 +89,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         }
         .sb-toast {
           display: flex; align-items: flex-start; gap: 10px;
-          padding: 12px 14px; border-radius: 10px;
-          font-size: 13.5px; font-weight: 500; line-height: 1.5;
-          box-shadow: 0 8px 24px rgba(15,23,42,0.10);
+          padding: 13px 15px; border-radius: 18px;
+          font-size: 13.5px; font-weight: 700; line-height: 1.5;
+          box-shadow: 0 16px 38px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.72);
+          backdrop-filter: blur(18px);
           animation: sb-toast-in 0.18s ease;
         }
         .sb-toast-message { flex: 1; }
         .sb-toast-close {
-          background: none; border: none; cursor: pointer;
-          opacity: 0.55; padding: 0 2px; font-size: 16px; line-height: 1; flex-shrink: 0;
+          background: rgba(255,255,255,0.42); border: 1px solid rgba(255,255,255,0.62); cursor: pointer;
+          opacity: 0.7; padding: 2px 7px; border-radius: 10px; font-size: 16px; line-height: 1; flex-shrink: 0;
+          transition: opacity 0.16s ease, transform 0.16s ease, background 0.16s ease;
         }
-        .sb-toast-close:hover { opacity: 0.9; }
+        .sb-toast-close:hover { opacity: 0.95; background: rgba(255,255,255,0.72); transform: translateY(-1px); }
         @keyframes sb-toast-in {
           from { opacity: 0; transform: translateY(-6px); }
           to { opacity: 1; transform: translateY(0); }

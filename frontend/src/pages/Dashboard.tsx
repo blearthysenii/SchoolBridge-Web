@@ -571,25 +571,42 @@ function Dashboard() {
       )}
 
       <style>{`
-        .db-section-title { font-size: 13px; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px; }
+        .db-section-title { font-size: 12.5px; font-weight: 850; color: #64748B; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px; }
         .db-section-title:not(:first-child) { margin-top: 28px; }
         .db-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
         .db-quick-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
         .db-quick-action {
-          display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 14px 16px;
-          background: #fff; border: 1px solid #E2E8F0; border-radius: 8px; cursor: pointer;
+          display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 16px;
+          background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.74); border-radius: 22px; cursor: pointer;
           color: #0F172A; font-size: 13.5px; font-weight: 700; text-align: left;
-          transition: border-color 0.14s, box-shadow 0.14s, transform 0.14s;
+          box-shadow: 0 16px 38px rgba(15,23,42,0.07), inset 0 1px 0 rgba(255,255,255,0.84);
+          backdrop-filter: blur(18px);
+          transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease, background 0.16s ease;
         }
-        .db-quick-action:hover { border-color: #BFDBFE; box-shadow: 0 2px 8px rgba(37,99,235,0.08); transform: translateY(-1px); }
-        .db-quick-icon { width: 34px; height: 34px; border-radius: 8px; background: #EFF6FF; color: #2563EB; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .db-quick-action:hover { border-color: rgba(191,219,254,0.9); background: rgba(255,255,255,0.78); box-shadow: 0 20px 46px rgba(15,23,42,0.1); transform: translateY(-2px); }
+        .db-quick-icon {
+          width: 40px; height: 40px; border-radius: 15px;
+          background: linear-gradient(145deg, rgba(37,99,235,0.12), rgba(255,255,255,0.72));
+          border: 1px solid rgba(255,255,255,0.78); color: #2563EB;
+          display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
         .db-summary-grid { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
-        .db-summary-item { background: #fff; border: 1px solid #E2E8F0; border-radius: 8px; padding: 18px; min-width: 0; }
+        .db-summary-item {
+          background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.74);
+          border-radius: 22px; padding: 20px; min-width: 0;
+          box-shadow: 0 16px 38px rgba(15,23,42,0.07), inset 0 1px 0 rgba(255,255,255,0.84);
+          backdrop-filter: blur(18px);
+        }
         .db-summary-value { font-size: 26px; font-weight: 800; color: #0F172A; line-height: 1; }
         .db-summary-class { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .db-summary-label { margin-top: 8px; font-size: 12.5px; color: #64748B; line-height: 1.4; }
         .db-main-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; }
-        .db-panel { background: #fff; border: 1px solid #E2E8F0; border-radius: 8px; padding: 18px; min-width: 0; }
+        .db-panel {
+          background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.74);
+          border-radius: 24px; padding: 20px; min-width: 0;
+          box-shadow: 0 16px 38px rgba(15,23,42,0.07), inset 0 1px 0 rgba(255,255,255,0.84);
+          backdrop-filter: blur(18px);
+        }
         .db-panel-header { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
         .db-panel-title { font-size: 15px; font-weight: 800; color: #0F172A; }
         .db-panel-subtitle { font-size: 12px; color: #94A3B8; margin-top: 2px; }
@@ -598,29 +615,36 @@ function Dashboard() {
         .db-progress-top, .db-list-row, .db-student-row, .db-activity-row {
           display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0;
         }
-        .db-list-row, .db-student-row, .db-activity-row { color: inherit; text-decoration: none; padding: 2px 0; }
+        .db-list-row, .db-student-row, .db-activity-row {
+          color: inherit; text-decoration: none; padding: 9px 10px;
+          border-radius: 16px; transition: background 0.16s ease, transform 0.16s ease;
+        }
+        .db-list-row:hover, .db-student-row:hover, .db-activity-row:hover { background: rgba(255,255,255,0.54); transform: translateY(-1px); }
         .db-list-row:hover .db-row-title, .db-student-row:hover .db-row-title, .db-activity-row:hover .db-row-title { color: #2563EB; }
         .db-row-title { display: block; font-size: 13.5px; font-weight: 700; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .db-row-meta { display: block; font-size: 12px; color: #94A3B8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .db-percent { font-size: 13px; font-weight: 800; color: #0F172A; flex-shrink: 0; }
         .db-date { font-size: 11.5px; color: #94A3B8; flex-shrink: 0; white-space: nowrap; }
-        .db-progress-track { height: 7px; background: #F1F5F9; border-radius: 999px; overflow: hidden; margin-top: 8px; }
-        .db-progress-fill { height: 100%; background: #2563EB; border-radius: inherit; }
+        .db-progress-track { height: 8px; background: rgba(226,232,240,0.72); border-radius: 999px; overflow: hidden; margin-top: 8px; }
+        .db-progress-fill { height: 100%; background: linear-gradient(135deg, #60A5FA, #2563EB); border-radius: inherit; }
         .db-activity-row { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; }
         .db-activity-dot { width: 8px; height: 8px; border-radius: 50%; background: #2563EB; align-self: center; }
         .db-empty-mini { font-size: 13px; color: #94A3B8; padding: 10px 0; }
         .db-classroom-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
         .db-classroom-card {
-          display: flex; flex-direction: column; background: #fff; border: 1px solid #E2E8F0; border-radius: 8px;
-          overflow: hidden; transition: border-color 0.14s, box-shadow 0.14s;
+          display: flex; flex-direction: column; background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.74);
+          border-radius: 22px; overflow: hidden;
+          box-shadow: 0 16px 38px rgba(15,23,42,0.07), inset 0 1px 0 rgba(255,255,255,0.84);
+          backdrop-filter: blur(18px);
+          transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease, background 0.16s ease;
         }
-        .db-classroom-card:hover { border-color: #BFDBFE; box-shadow: 0 2px 8px rgba(37,99,235,0.08); }
-        .db-classroom-card-main { display: block; padding: 16px 18px 12px; text-decoration: none; color: inherit; flex: 1; min-width: 0; }
-        .db-classroom-card-grade { font-size: 11px; font-weight: 600; color: #2563EB; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-        .db-classroom-card-name { font-size: 15px; font-weight: 700; color: #0F172A; }
+        .db-classroom-card:hover { border-color: rgba(191,219,254,0.9); background: rgba(255,255,255,0.78); box-shadow: 0 20px 46px rgba(15,23,42,0.1); transform: translateY(-2px); }
+        .db-classroom-card-main { display: block; padding: 18px 20px 12px; text-decoration: none; color: inherit; flex: 1; min-width: 0; }
+        .db-classroom-card-grade { font-size: 11px; font-weight: 800; color: #2563EB; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 5px; }
+        .db-classroom-card-name { font-size: 15.5px; font-weight: 800; color: #0F172A; }
         .db-classroom-card-desc { font-size: 12.5px; color: #94A3B8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .db-classroom-card-meta { font-size: 11.5px; color: #CBD5E1; margin-top: 12px; }
-        .db-classroom-card-actions { display: flex; justify-content: flex-end; padding: 0 18px 14px; }
+        .db-classroom-card-actions { display: flex; justify-content: flex-end; padding: 0 20px 16px; }
 
         @media (max-width: 920px) {
           .db-stats-grid { grid-template-columns: repeat(2, 1fr); }

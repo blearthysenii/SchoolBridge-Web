@@ -108,10 +108,10 @@ function RateBar({ rate }: { rate: number }) {
   const color = rateColor(rate);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <div style={{ flex: 1, height: 5, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
-        <div style={{ width: `${rate}%`, height: "100%", background: color, borderRadius: 99 }} />
+      <div style={{ flex: 1, height: 7, background: "rgba(226,232,240,0.78)", borderRadius: 99, overflow: "hidden" }}>
+        <div style={{ width: `${rate}%`, height: "100%", background: color, borderRadius: 99, transition: "width 0.35s ease" }} />
       </div>
-      <span style={{ fontSize: 12, fontWeight: 700, color, minWidth: 36, textAlign: "right" }}>{rate}%</span>
+      <span style={{ fontSize: 12, fontWeight: 800, color, minWidth: 36, textAlign: "right" }}>{rate}%</span>
     </div>
   );
 }
@@ -139,10 +139,14 @@ function ChartTooltip({ active, payload, label, extra }: any) {
 function StatCard({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
   return (
     <div style={{
-      background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10,
-      padding: "16px 20px",
+      background: "rgba(255,255,255,0.62)",
+      border: "1px solid rgba(255,255,255,0.74)",
+      borderRadius: 22,
+      padding: "18px 20px",
+      boxShadow: "0 16px 38px rgba(15,23,42,0.07), inset 0 1px 0 rgba(255,255,255,0.84)",
+      backdropFilter: "blur(18px)",
     }}>
-      <div style={{ fontSize: 11.5, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 11.5, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>{label}</div>
       <div style={{ fontSize: 24, fontWeight: 700, color: accent ?? "#0f172a", lineHeight: 1.1 }}>{value}</div>
     </div>
   );
@@ -279,15 +283,15 @@ function TestAnalytics() {
             </div>
 
             {analytics.student_ranking.length > 0 ? (
-              <div style={{ overflowX: "auto" }}>
-              <table className="data-table">
+              <div className="table-scroll">
+              <table className="data-table ranking-table">
                 <thead>
                   <tr>
                     <th style={{ width: 48 }}>#</th>
                     <th>Emri</th>
                     <th className="hide-mobile">Korrekte</th>
-                    <th>Nota</th>
-                    <th>Shkalla</th>
+                    <th className="score-col">Nota</th>
+                    <th className="scale-col">Shkalla</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -306,7 +310,7 @@ function TestAnalytics() {
                       <td className="hide-mobile" style={{ color: "#64748b", fontSize: 13 }}>
                         {s.correct} / {s.total}
                       </td>
-                      <td>
+                      <td className="score-col">
                         <span style={{
                           fontWeight: 700, fontSize: 14,
                           color: rateColor(s.score),
@@ -314,7 +318,7 @@ function TestAnalytics() {
                           padding: "2px 8px", borderRadius: 5,
                         }}>{s.score}%</span>
                       </td>
-                      <td style={{ minWidth: 120 }}>
+                      <td className="scale-col">
                         <RateBar rate={s.score} />
                       </td>
                     </tr>
@@ -362,14 +366,14 @@ function TestAnalytics() {
                   </ResponsiveContainer>
                 </div>
 
-                <div style={{ overflowX: "auto" }}>
-                <table className="data-table" style={{ marginTop: 16 }}>
+                <div className="table-scroll" style={{ marginTop: 16 }}>
+                <table className="data-table questions-table">
                   <thead>
                     <tr>
                       <th>Nr.</th>
                       <th>Pyetja</th>
                       <th className="hide-mobile">Koncepti</th>
-                      <th>Suksesi</th>
+                      <th className="rate-col">Suksesi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -378,7 +382,7 @@ function TestAnalytics() {
                         <td style={{ fontWeight: 700, color: "#64748b" }}>P{q.question_number}</td>
                         <td style={{ color: "#0f172a", fontSize: 13 }}>{q.question_text}</td>
                         <td className="hide-mobile" style={{ color: "#64748b", fontSize: 12.5 }}>{q.concept_name}</td>
-                        <td style={{ minWidth: 130 }}>
+                        <td className="rate-cell">
                           <RateBar rate={q.success_rate} />
                         </td>
                       </tr>
@@ -519,31 +523,43 @@ function TestAnalytics() {
 const baseStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #0f172a; }
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    background:
+      radial-gradient(circle at top left, rgba(255,255,255,0.96), transparent 30rem),
+      radial-gradient(circle at top right, rgba(219,234,254,0.56), transparent 34rem),
+      #f3f4f6;
+  }
   .topbar {
-    background: #fff; border-bottom: 1px solid #e2e8f0;
-    padding: 0 28px; height: 56px;
+    background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.74);
+    border-radius: 24px;
+    padding: 0 20px; min-height: 68px;
     display: flex; align-items: center; gap: 12px;
-    position: sticky; top: 0; z-index: 50;
+    position: sticky; top: 16px; z-index: 50;
+    width: min(900px, calc(100% - 32px));
+    margin: 16px auto 0;
+    box-shadow: 0 18px 44px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.86);
+    backdrop-filter: blur(18px);
   }
   .topbar-left { display: flex; align-items: center; gap: 10px; }
-  .topbar-title { font-size: 14.5px; font-weight: 600; color: #0f172a; }
+  .topbar-title { font-size: 14.5px; font-weight: 800; color: #0f172a; }
   .back-btn {
     display: flex; align-items: center; gap: 6px;
-    background: none; border: 1px solid #e2e8f0; border-radius: 7px;
-    padding: 6px 12px; font-size: 13px; font-weight: 500; color: #475569;
-    cursor: pointer; transition: background 0.12s;
+    background: rgba(255,255,255,0.62); border: 1px solid rgba(226,232,240,0.82); border-radius: 15px;
+    padding: 8px 12px; font-size: 13px; font-weight: 800; color: #475569;
+    cursor: pointer; transition: background 0.16s ease, transform 0.16s ease, border-color 0.16s ease;
   }
-  .back-btn:hover { background: #f1f5f9; }
+  .back-btn:hover { background: rgba(255,255,255,0.9); border-color: rgba(191,219,254,0.9); transform: translateY(-1px); }
   .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13.5px; }
-  .breadcrumb-seg { color: #64748b; font-weight: 500; }
+  .breadcrumb-seg { color: #64748b; font-weight: 700; }
   .breadcrumb-sep { color: #cbd5e1; display: flex; align-items: center; }
-  .breadcrumb-current { color: #0f172a; font-weight: 600; }
+  .breadcrumb-current { color: #0f172a; font-weight: 800; }
 
-  .page { max-width: 900px; margin: 0 auto; padding: 28px; }
+  .page { max-width: 900px; margin: 0 auto; padding: 24px 28px 36px; }
 
   .stats-row {
     display: grid; grid-template-columns: repeat(4, 1fr);
@@ -551,33 +567,36 @@ const baseStyles = `
   }
 
   .tabs {
-    display: flex; border-bottom: 1px solid #e2e8f0;
-    margin-bottom: 24px; overflow-x: auto; gap: 0;
+    display: flex; border-bottom: 1px solid rgba(226,232,240,0.78);
+    margin-bottom: 24px; overflow-x: auto; gap: 6px;
   }
   .tab {
     display: flex; align-items: center; gap: 7px;
-    padding: 10px 18px; font-size: 13.5px; font-weight: 500; color: #64748b;
+    padding: 10px 18px; font-size: 13.5px; font-weight: 800; color: #64748b;
     border-bottom: 2px solid transparent; margin-bottom: -1px;
-    cursor: pointer; white-space: nowrap; transition: color 0.12s;
+    cursor: pointer; white-space: nowrap; transition: color 0.16s ease, background 0.16s ease;
     background: none; border-top: none; border-left: none; border-right: none;
+    border-radius: 14px 14px 0 0;
   }
-  .tab:hover { color: #0f172a; }
+  .tab:hover { color: #0f172a; background: rgba(255,255,255,0.5); }
   .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
   .tab-badge {
-    background: #f1f5f9; color: #64748b;
-    font-size: 11px; font-weight: 600;
+    background: rgba(241,245,249,0.86); color: #64748b;
+    font-size: 11px; font-weight: 800;
     padding: 1px 6px; border-radius: 10px; min-width: 20px; text-align: center;
   }
   .tab.active .tab-badge { background: #eff6ff; color: #2563eb; }
 
   .section-hdr { display: flex; flex-direction: column; margin-bottom: 14px; }
-  .section-hdr-title { font-size: 14px; font-weight: 700; color: #0f172a; }
+  .section-hdr-title { font-size: 14px; font-weight: 850; color: #0f172a; }
   .section-hdr-sub { font-size: 12.5px; color: #94a3b8; margin-top: 2px; }
 
   .chart-card {
-    background: #fff; border: 1px solid #e2e8f0;
-    border-radius: 10px; padding: 20px 16px 12px;
+    background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.74);
+    border-radius: 22px; padding: 20px 16px 12px;
     margin-bottom: 0;
+    box-shadow: 0 16px 38px rgba(15,23,42,0.07), inset 0 1px 0 rgba(255,255,255,0.84);
+    backdrop-filter: blur(18px);
   }
   .chart-legend {
     display: flex; align-items: center; gap: 4px;
@@ -585,68 +604,122 @@ const baseStyles = `
   }
   .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 
+  .table-scroll {
+    overflow-x: auto;
+    border-radius: 22px;
+    box-shadow: 0 16px 38px rgba(15,23,42,0.07);
+  }
+
   .data-table {
     width: 100%; border-collapse: collapse;
-    background: #fff; border: 1px solid #e2e8f0;
-    border-radius: 10px; overflow: hidden;
+    background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.74);
+    border-radius: 22px; overflow: hidden;
+    box-shadow: 0 16px 38px rgba(15,23,42,0.07), inset 0 1px 0 rgba(255,255,255,0.84);
+    backdrop-filter: blur(18px);
   }
   .data-table th {
-    text-align: left; font-size: 11.5px; font-weight: 600;
+    text-align: left; font-size: 11.5px; font-weight: 800;
     color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;
-    padding: 10px 16px; background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
+    padding: 11px 16px; background: rgba(248,250,252,0.62);
+    border-bottom: 1px solid rgba(226,232,240,0.72);
   }
   .data-table td {
     padding: 11px 16px; font-size: 13.5px; color: #334155;
-    border-bottom: 1px solid #f1f5f9; vertical-align: middle;
+    border-bottom: 1px solid rgba(241,245,249,0.86); vertical-align: middle;
   }
   .data-table tr:last-child td { border-bottom: none; }
-  .data-table tr:hover td { background: #fafbff; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.52); }
+  .scale-col { min-width: 120px; }
+  .rate-cell { min-width: 130px; }
 
   .concept-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px;
   }
   .concept-card {
-    background: #fff; border: 1px solid #e2e8f0;
-    border-radius: 10px; padding: 14px 16px;
+    background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.74);
+    border-radius: 20px; padding: 15px 16px;
+    box-shadow: 0 12px 28px rgba(15,23,42,0.06);
   }
-  .concept-card.is-gap { border-color: #fecaca; background: #fff5f5; }
-  .concept-card-name { font-size: 13.5px; font-weight: 700; color: #0f172a; }
+  .concept-card.is-gap { border-color: rgba(254,202,202,0.88); background: rgba(255,245,245,0.78); }
+  .concept-card-name { font-size: 13.5px; font-weight: 850; color: #0f172a; }
   .concept-card-counts { display: flex; gap: 12px; margin-top: 8px; }
 
   .gap-card {
-    background: #fff; border: 1px solid #fecaca;
+    background: rgba(255,255,255,0.62); border: 1px solid rgba(254,202,202,0.88);
     border-left: 4px solid #ef4444;
-    border-radius: 10px; padding: 14px 18px;
+    border-radius: 20px; padding: 15px 18px;
     display: flex; align-items: flex-start; gap: 12px;
+    box-shadow: 0 12px 28px rgba(15,23,42,0.06);
   }
   .gap-icon {
     width: 32px; height: 32px; border-radius: 7px;
-    background: #fee2e2; color: #ef4444;
+    background: rgba(254,226,226,0.86); color: #ef4444;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
 
   .empty-state {
-    background: #f8fafc; border: 1px dashed #e2e8f0;
-    border-radius: 10px; padding: 36px 24px;
+    background: rgba(255,255,255,0.52); border: 1px dashed rgba(148,163,184,0.58);
+    border-radius: 22px; padding: 38px 24px;
     text-align: center; color: #94a3b8; font-size: 13.5px;
   }
   .empty-state strong { display: block; font-size: 14px; color: #64748b; margin-bottom: 4px; }
   .empty-gaps {
-    background: #f0fdf4; border: 1px solid #bbf7d0;
-    border-radius: 10px; padding: 18px;
-    text-align: center; color: #16a34a; font-size: 13.5px; font-weight: 500;
+    background: rgba(240,253,244,0.78); border: 1px solid rgba(187,247,208,0.86);
+    border-radius: 20px; padding: 18px;
+    text-align: center; color: #16a34a; font-size: 13.5px; font-weight: 800;
+  }
+
+  @media (max-width: 860px) {
+    .page { padding: 20px; max-width: 100%; }
+    .topbar { width: min(100% - 24px, 900px); }
+    .stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   }
 
   @media (max-width: 640px) {
-    .page { padding: 16px; }
-    .topbar { padding: 0 16px; }
+    .page { padding: 14px; overflow: hidden; }
+    .topbar {
+      padding: 10px 12px; width: min(100% - 20px, 900px); top: 10px; min-height: 58px;
+    }
+    .topbar-left { min-width: 0; }
     .breadcrumb { display: none; }
-    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .back-btn { padding: 8px 11px; font-size: 12.5px; }
+    .stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 24px; }
+    .tabs {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px; border-bottom: none; overflow: visible; margin-bottom: 22px;
+    }
+    .tab {
+      justify-content: center; min-width: 0; white-space: normal; text-align: center;
+      padding: 10px 8px; font-size: 12.5px; border: 1px solid rgba(226,232,240,0.78);
+      border-radius: 16px; margin-bottom: 0; background: rgba(255,255,255,0.48);
+    }
+    .tab.active {
+      background: rgba(239,246,255,0.86); border-color: rgba(191,219,254,0.95);
+      box-shadow: 0 10px 22px rgba(37,99,235,0.10);
+    }
+    .tab-badge { min-width: 18px; padding: 1px 5px; }
+    .section-hdr-title { font-size: 14px; }
+    .section-hdr-sub { font-size: 12px; }
+    .chart-card { padding: 16px 10px 10px; border-radius: 18px; }
+    .chart-legend { flex-wrap: wrap; row-gap: 8px; }
+    .table-scroll { overflow-x: visible; max-width: 100%; border-radius: 18px; }
+    .data-table { table-layout: fixed; min-width: 0; border-radius: 18px; }
+    .data-table th, .data-table td { padding: 10px 9px; font-size: 12.5px; }
+    .data-table th { font-size: 10.5px; letter-spacing: 0.03em; }
+    .ranking-table th:first-child,
+    .ranking-table td:first-child { width: 42px; }
+    .ranking-table .score-col { width: 72px; }
+    .ranking-table .scale-col { display: none; }
+    .questions-table th:first-child,
+    .questions-table td:first-child { width: 46px; }
+    .questions-table .rate-col,
+    .questions-table .rate-cell { width: 40%; min-width: 0 !important; }
+    .questions-table td:nth-child(2) {
+      overflow: hidden; text-overflow: ellipsis;
+    }
     .concept-grid { grid-template-columns: 1fr; }
     .hide-mobile { display: none; }
-    .tab { padding: 10px 12px; font-size: 12.5px; }
   }
 `;
 

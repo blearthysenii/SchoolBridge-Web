@@ -87,7 +87,7 @@ export default function ArchivedTests() {
     try {
       await updateTestStatus(t.id, "draft");
       setTests((prev) => prev.filter((x) => x.id !== t.id));
-      setBanner({ type: "success", text: `Testi "${t.title}" u rikthye me sukses si draft.` });
+      setBanner({ type: "success", text: `Testi "${t.title}" u rikthye me sukses si skicë.` });
     } catch (err: any) {
       setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi rikthimi." });
     } finally {
@@ -152,7 +152,7 @@ export default function ArchivedTests() {
       {pendingTest && (
         <ConfirmDialog
           title="Rikthe testin"
-          message={`Të rikthehet testi "${pendingTest.title}" si draft?`}
+          message={`Të rikthehet testi "${pendingTest.title}" si skicë?`}
           confirmLabel="Rikthe"
           submitting={restoringId === pendingTest.id}
           onCancel={() => setPendingTest(null)}

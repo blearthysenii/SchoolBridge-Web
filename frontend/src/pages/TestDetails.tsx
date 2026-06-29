@@ -208,7 +208,7 @@ function TestDetails() {
   const getStatusLabel = (status?: TestStatus) => {
     if (status === "published") return "Publikuar";
     if (status === "archived") return "Arkivuar";
-    return "Draft";
+    return "Skicë";
   };
 
   const orderedQuestions = useMemo(() => {
@@ -439,21 +439,33 @@ function TestDetails() {
     <>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+          background:
+            radial-gradient(circle at top left, rgba(255,255,255,0.96), transparent 30rem),
+            radial-gradient(circle at top right, rgba(219,234,254,0.56), transparent 34rem),
+            #f3f4f6;
+          color: #0f172a;
+        }
         a { text-decoration: none; color: inherit; }
 
         .topbar {
-          background: #fff;
-          border-bottom: 1px solid #e2e8f0;
-          padding: 0 28px;
-          min-height: 56px;
+          background: rgba(255,255,255,0.62);
+          border: 1px solid rgba(255,255,255,0.74);
+          border-radius: 24px;
+          padding: 0 20px;
+          min-height: 68px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           position: sticky;
-          top: 0;
+          top: 16px;
           z-index: 50;
           gap: 12px;
+          width: min(1180px, calc(100% - 32px));
+          margin: 16px auto 0;
+          box-shadow: 0 18px 44px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.86);
+          backdrop-filter: blur(18px);
         }
 
         .topbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -462,19 +474,19 @@ function TestDetails() {
           display: flex;
           align-items: center;
           gap: 6px;
-          background: none;
-          border: 1px solid #e2e8f0;
-          border-radius: 7px;
-          padding: 6px 12px;
+          background: rgba(255,255,255,0.62);
+          border: 1px solid rgba(226,232,240,0.82);
+          border-radius: 15px;
+          padding: 8px 12px;
           font-size: 13px;
-          font-weight: 500;
+          font-weight: 800;
           color: #475569;
           cursor: pointer;
-          transition: background 0.12s;
+          transition: background 0.16s ease, transform 0.16s ease, border-color 0.16s ease;
           white-space: nowrap;
         }
 
-        .back-btn:hover { background: #f1f5f9; }
+        .back-btn:hover { background: rgba(255,255,255,0.9); border-color: rgba(191,219,254,0.9); transform: translateY(-1px); }
 
         .breadcrumb {
           display: flex;
@@ -484,11 +496,11 @@ function TestDetails() {
           min-width: 0;
         }
 
-        .breadcrumb-seg { color: #64748b; font-weight: 500; }
+        .breadcrumb-seg { color: #64748b; font-weight: 700; }
         .breadcrumb-sep { color: #cbd5e1; display: flex; align-items: center; }
         .breadcrumb-current {
           color: #0f172a;
-          font-weight: 600;
+          font-weight: 800;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -496,14 +508,16 @@ function TestDetails() {
 
         .topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
-        .page { max-width: 1180px; margin: 0 auto; padding: 28px; }
+        .page { max-width: 1180px; margin: 0 auto; padding: 24px 28px 32px; }
 
         .page-header {
-          background: #fff;
-          border: 1px solid #e2e8f0;
-          border-radius: 14px;
+          background: rgba(255,255,255,0.62);
+          border: 1px solid rgba(255,255,255,0.74);
+          border-radius: 24px;
           padding: 24px;
           margin-bottom: 20px;
+          box-shadow: 0 18px 44px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.86);
+          backdrop-filter: blur(18px);
         }
 
         .page-header-top {
@@ -523,16 +537,16 @@ function TestDetails() {
           padding: 6px 12px;
           font-size: 12px;
           font-weight: 800;
-          background: #f1f5f9;
+          background: rgba(255,255,255,0.62);
           color: #475569;
-          border: 1px solid #e2e8f0;
+          border: 1px solid rgba(226,232,240,0.82);
           white-space: nowrap;
         }
 
         .status-pill.published {
-          background: #ecfdf5;
+          background: rgba(236,253,245,0.74);
           color: #047857;
-          border-color: #a7f3d0;
+          border-color: rgba(167,243,208,0.86);
         }
 
         .builder-actions {
@@ -553,9 +567,9 @@ function TestDetails() {
           display: inline-flex;
           align-items: center;
           gap: 5px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 7px;
+          background: rgba(255,255,255,0.58);
+          border: 1px solid rgba(226,232,240,0.78);
+          border-radius: 14px;
           padding: 6px 12px;
           font-size: 12px;
           font-weight: 700;
@@ -570,10 +584,12 @@ function TestDetails() {
         }
 
         .panel {
-          background: #fff;
-          border: 1px solid #e2e8f0;
-          border-radius: 14px;
+          background: rgba(255,255,255,0.62);
+          border: 1px solid rgba(255,255,255,0.74);
+          border-radius: 24px;
           overflow: hidden;
+          box-shadow: 0 18px 44px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.86);
+          backdrop-filter: blur(18px);
         }
 
         .panel-header {
@@ -581,8 +597,8 @@ function TestDetails() {
           align-items: center;
           justify-content: space-between;
           padding: 16px 18px;
-          border-bottom: 1px solid #e2e8f0;
-          background: #fff;
+          border-bottom: 1px solid rgba(226,232,240,0.68);
+          background: rgba(255,255,255,0.44);
         }
 
         .panel-title-wrap {
@@ -594,8 +610,9 @@ function TestDetails() {
         .section-icon {
           width: 36px;
           height: 36px;
-          border-radius: 9px;
-          background: #eff6ff;
+          border-radius: 15px;
+          background: linear-gradient(145deg, rgba(37,99,235,0.12), rgba(255,255,255,0.72));
+          border: 1px solid rgba(255,255,255,0.78);
           color: #2563eb;
           display: flex;
           align-items: center;
@@ -612,23 +629,25 @@ function TestDetails() {
           display: flex;
           align-items: flex-start;
           gap: 12px;
-          background: #fff;
-          border: 1px solid #e2e8f0;
-          border-radius: 12px;
+          background: rgba(255,255,255,0.58);
+          border: 1px solid rgba(255,255,255,0.72);
+          border-radius: 20px;
           padding: 15px;
-          transition: background 0.1s, border-color 0.1s;
+          transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
         }
 
         .question-card:hover {
-          background: #fafbff;
-          border-color: #cbd5e1;
+          background: rgba(255,255,255,0.78);
+          border-color: rgba(191,219,254,0.9);
+          transform: translateY(-1px);
+          box-shadow: 0 12px 28px rgba(15,23,42,0.07);
         }
 
         .q-num {
           width: 30px;
           height: 30px;
-          border-radius: 8px;
-          background: #f1f5f9;
+          border-radius: 12px;
+          background: rgba(241,245,249,0.78);
           color: #64748b;
           font-size: 12px;
           font-weight: 850;
@@ -652,14 +671,14 @@ function TestDetails() {
           font-size: 11px;
           font-weight: 800;
           color: #475569;
-          background: #f1f5f9;
+          background: rgba(241,245,249,0.78);
           border-radius: 999px;
           padding: 3px 8px;
         }
 
         .q-chip.blue {
           color: #2563eb;
-          background: #eff6ff;
+          background: rgba(239,246,255,0.78);
         }
 
         .q-text {
@@ -680,9 +699,9 @@ function TestDetails() {
           display: flex;
           align-items: center;
           gap: 8px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
+          background: rgba(248,250,252,0.72);
+          border: 1px solid rgba(226,232,240,0.78);
+          border-radius: 14px;
           padding: 8px 10px;
           font-size: 12.5px;
           color: #475569;
@@ -704,8 +723,8 @@ function TestDetails() {
         }
 
         .q-option-correct {
-          border-color: #bbf7d0;
-          background: #f0fdf4;
+          border-color: rgba(187,247,208,0.86);
+          background: rgba(240,253,244,0.78);
           color: #166534;
         }
 
@@ -716,7 +735,7 @@ function TestDetails() {
 
         .q-correct-badge {
           margin-left: auto;
-          background: #dcfce7;
+          background: rgba(220,252,231,0.88);
           color: #166534;
           border-radius: 999px;
           padding: 2px 7px;
@@ -733,9 +752,9 @@ function TestDetails() {
 
         .empty-state {
           margin: 12px;
-          background: #f8fafc;
-          border: 1px dashed #cbd5e1;
-          border-radius: 12px;
+          background: rgba(255,255,255,0.52);
+          border: 1px dashed rgba(148,163,184,0.58);
+          border-radius: 22px;
           padding: 44px 24px;
           text-align: center;
           color: #94a3b8;
@@ -756,14 +775,14 @@ function TestDetails() {
 
         .preview-body {
           padding: 18px;
-          background: #f8fafc;
+          background: rgba(248,250,252,0.5);
         }
 
         .paper {
-          background: #fff;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 10px 24px rgba(15,23,42,0.08);
-          border-radius: 8px;
+          background: rgba(255,255,255,0.82);
+          border: 1px solid rgba(226,232,240,0.82);
+          box-shadow: 0 14px 32px rgba(15,23,42,0.10);
+          border-radius: 18px;
           padding: 22px;
           min-height: 460px;
         }
@@ -780,8 +799,8 @@ function TestDetails() {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 10px;
-          border-top: 1px solid #e2e8f0;
-          border-bottom: 1px solid #e2e8f0;
+          border-top: 1px solid rgba(226,232,240,0.78);
+          border-bottom: 1px solid rgba(226,232,240,0.78);
           padding: 10px 0;
           margin: 14px 0 18px;
           font-size: 11.5px;
@@ -825,45 +844,46 @@ function TestDetails() {
           justify-content: center;
           gap: 6px;
           border: none;
-          border-radius: 8px;
-          padding: 8px 13px;
+          border-radius: 15px;
+          padding: 9px 14px;
           font-size: 13px;
-          font-weight: 750;
+          font-weight: 800;
           cursor: pointer;
-          transition: all 0.12s;
+          transition: all 0.16s ease;
           white-space: nowrap;
         }
 
-        .btn-primary { background: #2563eb; color: #fff; }
-        .btn-primary:hover { background: #1d4ed8; }
+        .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; box-shadow: 0 12px 26px rgba(37,99,235,0.22); }
+        .btn-primary:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af); transform: translateY(-1px); }
         .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
 
-        .btn-success { background: #16a34a; color: #fff; }
-        .btn-success:hover { background: #15803d; }
+        .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; box-shadow: 0 12px 24px rgba(22,163,74,0.16); }
+        .btn-success:hover { background: linear-gradient(135deg, #16a34a, #15803d); transform: translateY(-1px); }
         .btn-success:disabled { background: #86efac; cursor: not-allowed; }
 
-        .btn-secondary { background: #f1f5f9; color: #475569; }
-        .btn-secondary:hover { background: #e2e8f0; }
+        .btn-secondary { background: rgba(255,255,255,0.62); color: #475569; border: 1px solid rgba(226,232,240,0.82); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.9); transform: translateY(-1px); }
 
         .btn-outline {
-          background: #fff;
+          background: rgba(255,255,255,0.62);
           color: #475569;
-          border: 1px solid #e2e8f0;
+          border: 1px solid rgba(226,232,240,0.82);
         }
         .btn-outline:hover {
-          background: #f8fafc;
-          border-color: #cbd5e1;
+          background: rgba(255,255,255,0.9);
+          border-color: rgba(191,219,254,0.9);
           color: #0f172a;
+          transform: translateY(-1px);
         }
 
         .btn-danger-soft {
-          background: #fff;
+          background: rgba(255,255,255,0.52);
           color: #94a3b8;
-          border: 1px solid transparent;
+          border: 1px solid rgba(226,232,240,0.62);
           padding: 7px 9px;
         }
         .btn-danger-soft:hover {
-          background: #fff1f2;
+          background: rgba(255,241,242,0.86);
           color: #e11d48;
           border-color: #fecdd3;
         }
@@ -876,23 +896,26 @@ function TestDetails() {
         .modal-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(15,23,42,0.38);
+          background: rgba(15,23,42,0.34);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 200;
           padding: 16px;
+          backdrop-filter: blur(10px);
         }
 
         .modal {
-          background: #fff;
-          border-radius: 14px;
+          background: rgba(255,255,255,0.86);
+          border: 1px solid rgba(255,255,255,0.78);
+          border-radius: 24px;
           width: 100%;
           max-width: 660px;
           max-height: calc(100vh - 32px);
           overflow-y: auto;
-          box-shadow: 0 18px 50px rgba(15,23,42,0.22);
+          box-shadow: 0 28px 76px rgba(15,23,42,0.22), inset 0 1px 0 rgba(255,255,255,0.86);
           padding: 28px;
+          backdrop-filter: blur(22px);
         }
 
         .modal-header {
@@ -909,15 +932,15 @@ function TestDetails() {
         }
 
         .modal-close {
-          background: none;
-          border: none;
+          background: rgba(248,250,252,0.76);
+          border: 1px solid rgba(226,232,240,0.82);
           cursor: pointer;
           color: #94a3b8;
-          padding: 2px;
-          border-radius: 5px;
+          padding: 6px;
+          border-radius: 13px;
         }
 
-        .modal-close:hover { color: #475569; background: #f1f5f9; }
+        .modal-close:hover { color: #475569; background: rgba(255,255,255,0.92); }
 
         .modal-actions {
           display: flex;
@@ -937,7 +960,7 @@ function TestDetails() {
         .form-label {
           display: block;
           font-size: 12.5px;
-          font-weight: 750;
+          font-weight: 800;
           color: #475569;
           margin-bottom: 6px;
         }
@@ -945,13 +968,13 @@ function TestDetails() {
         .form-input {
           width: 100%;
           padding: 10px 12px;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
+          border: 1px solid rgba(226,232,240,0.86);
+          border-radius: 15px;
           font-size: 13.5px;
           color: #0f172a;
-          background: #fff;
+          background: rgba(255,255,255,0.72);
           outline: none;
-          transition: border-color 0.12s, box-shadow 0.12s;
+          transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
         }
 
         textarea.form-input {
@@ -962,7 +985,8 @@ function TestDetails() {
 
         .form-input:focus {
           border-color: #93c5fd;
-          box-shadow: 0 0 0 3px rgba(147,197,253,0.25);
+          background: rgba(255,255,255,0.96);
+          box-shadow: 0 0 0 4px rgba(147,197,253,0.22);
         }
 
         .form-input::placeholder { color: #cbd5e1; }
@@ -970,13 +994,13 @@ function TestDetails() {
         .form-select {
           width: 100%;
           padding: 10px 32px 10px 12px;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
+          border: 1px solid rgba(226,232,240,0.86);
+          border-radius: 15px;
           font-size: 13.5px;
           color: #0f172a;
-          background: #fff;
+          background: rgba(255,255,255,0.72);
           outline: none;
-          transition: border-color 0.12s, box-shadow 0.12s;
+          transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
           appearance: none;
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
           background-repeat: no-repeat;
@@ -985,7 +1009,8 @@ function TestDetails() {
 
         .form-select:focus {
           border-color: #93c5fd;
-          box-shadow: 0 0 0 3px rgba(147,197,253,0.25);
+          background: rgba(255,255,255,0.96);
+          box-shadow: 0 0 0 4px rgba(147,197,253,0.22);
         }
 
         .options-grid {
@@ -996,10 +1021,10 @@ function TestDetails() {
         }
 
         .option-box {
-          border: 1px solid #e2e8f0;
-          border-radius: 10px;
+          border: 1px solid rgba(226,232,240,0.78);
+          border-radius: 16px;
           padding: 10px;
-          background: #f8fafc;
+          background: rgba(248,250,252,0.62);
         }
 
         .option-top {
@@ -1039,16 +1064,16 @@ function TestDetails() {
           font-size: 12px;
           color: #e11d48;
           margin-top: 10px;
-          background: #fff1f2;
-          border: 1px solid #fecdd3;
-          border-radius: 8px;
+          background: rgba(255,241,242,0.8);
+          border: 1px solid rgba(254,205,211,0.9);
+          border-radius: 15px;
           padding: 9px 10px;
         }
 
         .no-concepts-warn {
-          background: #fffbeb;
-          border: 1px solid #fde68a;
-          border-radius: 8px;
+          background: rgba(255,251,235,0.82);
+          border: 1px solid rgba(253,230,138,0.92);
+          border-radius: 16px;
           padding: 12px 14px;
           font-size: 13px;
           color: #92400e;
@@ -1153,7 +1178,7 @@ function TestDetails() {
             <div>
               <div className="page-title">{test?.title ?? `Testi #${id}`}</div>
               <div className="page-meta">
-                ID: {id} · Test Builder për printim dhe analizë
+                ID: {id} · Ndërtues testi për printim dhe analizë
               </div>
 
               <div className="meta-pills">
@@ -1178,7 +1203,7 @@ function TestDetails() {
               disabled={statusSaving}
               onClick={() => handleUpdateStatus("draft")}
             >
-              {statusSaving ? "Duke ruajtur…" : "Ruaj Draft"}
+              {statusSaving ? "Duke ruajtur…" : "Ruaj si skicë"}
             </button>
 
             <button
@@ -1194,7 +1219,7 @@ function TestDetails() {
               onClick={() => setPreviewOpen((prev) => !prev)}
             >
               <IconPreview />
-              {previewOpen ? "Fsheh Preview" : "Shfaq Preview"}
+              {previewOpen ? "Fsheh pamjen paraprake" : "Shfaq pamjen paraprake"}
             </button>
 
             <button
@@ -1246,7 +1271,7 @@ function TestDetails() {
                       <button
                         className="btn-outline"
                         onClick={() => handleEditQuestion(q)}
-                        title="Edito pyetjen"
+                        title="Ndrysho pyetjen"
                       >
                         <IconEdit />
                       </button>
@@ -1271,7 +1296,7 @@ function TestDetails() {
             <div className="panel preview-panel">
               <div className="panel-header">
                 <div>
-                  <div className="section-title">Preview i testit</div>
+                  <div className="section-title">Pamja paraprake e testit</div>
                   <div className="section-sub">Pamja afërsisht si në PDF</div>
                 </div>
               </div>
@@ -1332,7 +1357,7 @@ function TestDetails() {
           <div className="modal">
             <div className="modal-header">
               <div className="modal-title">
-                {editingQuestionId ? "Edito pyetjen" : "Shto pyetje të re"}
+                {editingQuestionId ? "Ndrysho pyetjen" : "Shto pyetje të re"}
               </div>
 
               <button

@@ -267,8 +267,8 @@ function ClassroomDetails() {
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
   // ── Loaders ──
-  // Active-only views must never surface soft-deleted/archived records, even if
-  // the backend response happens to include them — filter defensively here.
+  // Pamjet aktive nuk duhet të shfaqin rekorde të çaktivizuara/arkivuara,
+  // edhe nëse përgjigja nga backend-i i përfshin.
   const loadStudents = async () => {
     if (!id) return;
     const r = await getStudentsByClassroom(id);
@@ -921,7 +921,7 @@ function ClassroomDetails() {
             pendingAction.kind === "deactivateStudent"
               ? `Të çaktivizohet nxënësi "${pendingAction.label}"? Mund ta riaktivizoni më vonë nga "Arkivi" në menu.`
               : pendingAction.kind === "deleteTest"
-              ? `Të arkivohet testi "${pendingAction.label}"? Mund ta rikthesh më vonë si draft nga "Arkivi" në menu.`
+              ? `Të arkivohet testi "${pendingAction.label}"? Mund ta rikthesh më vonë si skicë nga "Arkivi" në menu.`
               : `Të çaktivizohet "${pendingAction.label}"? Mund ta riaktivizoni më vonë nga "Arkivi" në menu.`
           }
           confirmLabel={pendingAction.kind === "deleteTest" ? "Arkivo" : "Çaktivizo"}

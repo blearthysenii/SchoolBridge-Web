@@ -13,21 +13,28 @@ export default function EmptyState({ icon, title, description, action }: EmptySt
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "48px 24px",
+        padding: "52px 24px",
         textAlign: "center",
+        borderRadius: "24px",
+        border: "1px solid rgba(255,255,255,0.74)",
+        background: "rgba(255,255,255,0.58)",
+        boxShadow: "0 18px 44px rgba(15,23,42,0.07), inset 0 1px 0 rgba(255,255,255,0.86)",
+        backdropFilter: "blur(18px)",
       }}
     >
       <div
         style={{
-          width: "56px",
-          height: "56px",
-          borderRadius: "14px",
-          background: "rgba(37, 99, 235, 0.08)",
+          width: "60px",
+          height: "60px",
+          borderRadius: "20px",
+          background: "linear-gradient(145deg, rgba(37,99,235,0.12), rgba(255,255,255,0.72))",
+          border: "1px solid rgba(255,255,255,0.78)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           marginBottom: "16px",
           color: "#2563EB",
+          boxShadow: "0 10px 22px rgba(37,99,235,0.10), inset 0 1px 0 rgba(255,255,255,0.82)",
         }}
       >
         {icon || (
@@ -39,7 +46,7 @@ export default function EmptyState({ icon, title, description, action }: EmptySt
       <h3
         style={{
           fontSize: "15px",
-          fontWeight: 600,
+          fontWeight: 800,
           color: "#1E293B",
           marginBottom: "6px",
         }}
@@ -53,7 +60,7 @@ export default function EmptyState({ icon, title, description, action }: EmptySt
             color: "#64748B",
             marginBottom: "20px",
             maxWidth: "280px",
-            lineHeight: 1.6,
+            lineHeight: 1.65,
           }}
         >
           {description}
