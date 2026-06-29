@@ -9,3 +9,13 @@ export const getDashboardStats = async () => {
     },
   });
 };
+
+export const getDashboardInsights = async () => {
+  const token = localStorage.getItem("token");
+
+  return await api.get("/dashboard/insights", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};

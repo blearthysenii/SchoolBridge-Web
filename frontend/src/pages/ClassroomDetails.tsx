@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 
 import api from "../services/api";
 import Layout from "../components/Layout";
@@ -233,6 +233,8 @@ function Modal({
 function ClassroomDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const quickActionHandledRef = useRef("");
 
   const [user, setUser] = useState<User | null>(null);
   const [classroom, setClassroom] = useState<Classroom | null>(null);
@@ -324,6 +326,7 @@ function ClassroomDetails() {
     if (type === "student") { setFullName(""); setPersonalNumber(""); setDateBirth(""); }
     if (type === "subject") setSubjectName("");
     if (type === "concept") setConceptName("");
+    if (type === "test") { setTestTitle(""); setSelectedTestSubjectId(""); }
     setActiveModal(type);
   };
   const closeModal = () => {
@@ -331,6 +334,34 @@ function ClassroomDetails() {
     setFormError("");
     setEditingId(null);
   };
+
+  useEffect(() => {
+    if (loading) return;
+
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab");
+    const action = params.get("action");
+    const key = `${id}:${location.search}`;
+
+    if (quickActionHandledRef.current === key) return;
+
+    if (tab === "students" || tab === "subjects" || tab === "concepts" || tab === "tests") {
+      setActiveTab(tab);
+      quickActionHandledRef.current = key;
+    }
+
+    if (action === "new-student") {
+      setActiveTab("students");
+      openModal("student");
+      quickActionHandledRef.current = key;
+    }
+
+    if (action === "new-test") {
+      setActiveTab("tests");
+      openModal("test");
+      quickActionHandledRef.current = key;
+    }
+  }, [id, loading, location.search]);
 
   const openEditStudent = (s: Student) => {
     setEditingId(s.id);

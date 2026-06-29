@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 
 import api from "../services/api";
 import { createClassroom, deactivateClassroom, getClassrooms } from "../services/classroomService";
-import { getDashboardStats } from "../services/dashboardService";
+import { getDashboardInsights, getDashboardStats } from "../services/dashboardService";
 
 import Layout from "../components/Layout";
 import StatCard from "../components/StatCard";
@@ -36,6 +36,59 @@ type DashboardStats = {
   tests: number;
   questions: number;
   results: number;
+};
+
+type WeakestClassroom = {
+  classroom_id: number;
+  classroom_name: string;
+  accuracy: number;
+  total_answers: number;
+};
+
+type WeakConcept = {
+  concept_id: number;
+  concept_name: string;
+  subject_name: string;
+  classroom_name: string;
+  accuracy: number;
+  total_answers: number;
+};
+
+type LowStudent = {
+  student_id: number;
+  student_name: string;
+  classroom_name: string;
+  accuracy: number;
+  total_answers: number;
+};
+
+type RecentTest = {
+  test_id: number;
+  title: string;
+  subject_name: string;
+  classroom_name: string;
+  status: string;
+  created_at: string;
+};
+
+type RecentActivity = {
+  type: string;
+  label: string;
+  detail?: string | null;
+  created_at: string;
+  href?: string | null;
+};
+
+type DashboardInsights = {
+  summary: {
+    concepts_need_attention: number;
+    students_below_60: number;
+    weakest_classroom: WeakestClassroom | null;
+  };
+  weak_concepts: WeakConcept[];
+  students_need_attention: LowStudent[];
+  recent_tests: RecentTest[];
+  recent_activity: RecentActivity[];
 };
 
 function IconClassroom() {
@@ -108,12 +161,17 @@ function IconArchive() {
   );
 }
 
+const formatPercent = (value?: number) => `${Math.round(value ?? 0)}%`;
+const formatDate = (value: string) =>
+  new Date(value).toLocaleDateString("sq-AL", { day: "numeric", month: "short", year: "numeric" });
+
 function Dashboard() {
   const navigate = useNavigate();
 
   const [user, setUser] = useState<User | null>(null);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [insights, setInsights] = useState<DashboardInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -138,9 +196,13 @@ function Dashboard() {
     setStats(response.data);
   };
 
+  const loadInsights = async () => {
+    const response = await getDashboardInsights();
+    setInsights(response.data);
+  };
+
   const refreshDashboard = async () => {
-    await loadClassrooms();
-    await loadStats();
+    await Promise.all([loadClassrooms(), loadStats(), loadInsights()]);
   };
 
   useEffect(() => {
@@ -170,6 +232,15 @@ function Dashboard() {
     return () => document.removeEventListener("keydown", handleKey);
   }, [modalOpen]);
 
+  const openClassroomWorkflow = (tab: "students" | "tests", action: "new-student" | "new-test") => {
+    const classroom = classrooms[0];
+    if (!classroom) {
+      setBanner({ type: "error", text: "Krijoni së pari një klasë aktive." });
+      return;
+    }
+    navigate(`/classrooms/${classroom.id}?tab=${tab}&action=${action}`);
+  };
+
   const handleCreateClassroom = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
@@ -193,7 +264,7 @@ function Dashboard() {
     try {
       await deactivateClassroom(classroom.id);
       setClassrooms((prev) => prev.filter((c) => c.id !== classroom.id));
-      await loadStats();
+      await Promise.all([loadStats(), loadInsights()]);
       setBanner({
         type: "info",
         text: `Klasa "${classroom.name}" u çaktivizua. Mund ta aktivizoni prapë nga "Klasat jo aktive".`,
@@ -205,6 +276,13 @@ function Dashboard() {
       setPendingClassroom(null);
     }
   };
+
+  const quickActions = [
+    { label: "Krijo klasë", icon: <IconPlus />, onClick: () => setModalOpen(true) },
+    { label: "Krijo test", icon: <IconTests />, onClick: () => openClassroomWorkflow("tests", "new-test") },
+    { label: "Shto nxënës", icon: <IconStudents />, onClick: () => openClassroomWorkflow("students", "new-student") },
+    { label: "Dorëzo rezultate", icon: <IconResults />, onClick: () => navigate("/submit-results") },
+  ];
 
   return (
     <Layout
@@ -234,6 +312,146 @@ function Dashboard() {
             <StatCard label="Koncepte" value={stats?.concepts ?? "—"} icon={<IconConcepts />} />
           </div>
 
+          <div className="db-section-title">Veprime të shpejta</div>
+          <div className="db-quick-grid">
+            {quickActions.map((action) => (
+              <button key={action.label} type="button" className="db-quick-action" onClick={action.onClick}>
+                <span className="db-quick-icon">{action.icon}</span>
+                <span>{action.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="db-section-title">Përmbledhje e boshllëqeve</div>
+          <div className="db-summary-grid">
+            <div className="db-summary-item">
+              <div className="db-summary-value">{insights?.summary.concepts_need_attention ?? 0}</div>
+              <div className="db-summary-label">Koncepte kërkojnë vëmendje</div>
+            </div>
+            <div className="db-summary-item">
+              <div className="db-summary-value">{insights?.summary.students_below_60 ?? 0}</div>
+              <div className="db-summary-label">Nxënës nën 60%</div>
+            </div>
+            <div className="db-summary-item db-summary-wide">
+              <div className="db-summary-value db-summary-class">
+                {insights?.summary.weakest_classroom?.classroom_name ?? "—"}
+              </div>
+              <div className="db-summary-label">
+                Klasa më e dobët
+                {insights?.summary.weakest_classroom && (
+                  <span> · {formatPercent(insights.summary.weakest_classroom.accuracy)}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="db-main-grid">
+            <section className="db-panel">
+              <div className="db-panel-header">
+                <div>
+                  <div className="db-panel-title">Konceptet më problematike</div>
+                  <div className="db-panel-subtitle">Sipas përgjigjeve të dorëzuara</div>
+                </div>
+              </div>
+              {insights?.weak_concepts.length ? (
+                <div className="db-progress-list">
+                  {insights.weak_concepts.map((concept) => (
+                    <div key={concept.concept_id} className="db-progress-row">
+                      <div className="db-progress-top">
+                        <div>
+                          <div className="db-row-title">{concept.concept_name}</div>
+                          <div className="db-row-meta">{concept.subject_name} · {concept.classroom_name}</div>
+                        </div>
+                        <div className="db-percent">{formatPercent(concept.accuracy)}</div>
+                      </div>
+                      <div className="db-progress-track">
+                        <div className="db-progress-fill" style={{ width: `${Math.max(4, Math.min(100, concept.accuracy))}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="db-empty-mini">Nuk ka të dhëna për koncepte ende.</div>
+              )}
+            </section>
+
+            <section className="db-panel">
+              <div className="db-panel-header">
+                <div>
+                  <div className="db-panel-title">Nxënës që kanë nevojë për vëmendje</div>
+                  <div className="db-panel-subtitle">Performanca më e ulët</div>
+                </div>
+              </div>
+              {insights?.students_need_attention.length ? (
+                <div className="db-compact-table">
+                  {insights.students_need_attention.map((student) => (
+                    <Link key={student.student_id} to={`/students/${student.student_id}/results`} className="db-student-row">
+                      <span>
+                        <span className="db-row-title">{student.student_name}</span>
+                        <span className="db-row-meta">{student.classroom_name}</span>
+                      </span>
+                      <span className="db-percent">{formatPercent(student.accuracy)}</span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="db-empty-mini">Nuk ka rezultate të mjaftueshme ende.</div>
+              )}
+            </section>
+          </div>
+
+          <div className="db-main-grid">
+            <section className="db-panel">
+              <div className="db-panel-title">Testet e fundit</div>
+              {insights?.recent_tests.length ? (
+                <div className="db-list">
+                  {insights.recent_tests.map((test) => (
+                    <Link key={test.test_id} to={`/tests/${test.test_id}`} className="db-list-row">
+                      <span>
+                        <span className="db-row-title">{test.title}</span>
+                        <span className="db-row-meta">{test.subject_name} · {test.classroom_name}</span>
+                      </span>
+                      <span className="db-date">{formatDate(test.created_at)}</span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="db-empty-mini">Nuk ka teste ende.</div>
+              )}
+            </section>
+
+            <section className="db-panel">
+              <div className="db-panel-title">Aktiviteti i fundit</div>
+              {insights?.recent_activity.length ? (
+                <div className="db-activity-list">
+                  {insights.recent_activity.map((item) => {
+                    const content = (
+                      <>
+                        <span className="db-activity-dot" />
+                        <span>
+                          <span className="db-row-title">{item.label}</span>
+                          {item.detail && <span className="db-row-meta">{item.detail}</span>}
+                        </span>
+                        <span className="db-date">{formatDate(item.created_at)}</span>
+                      </>
+                    );
+                    return item.href ? (
+                      <Link key={`${item.type}-${item.created_at}-${item.label}`} to={item.href} className="db-activity-row">
+                        {content}
+                      </Link>
+                    ) : (
+                      <div key={`${item.type}-${item.created_at}-${item.label}`} className="db-activity-row">
+                        {content}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="db-empty-mini">Nuk ka aktivitet ende.</div>
+              )}
+            </section>
+          </div>
+
           <div className="db-section-title">Klasat e mia</div>
           {classrooms.length > 0 ? (
             <div className="db-classroom-grid">
@@ -244,12 +462,7 @@ function Dashboard() {
                     <div className="db-classroom-card-name">{c.name}</div>
                     {c.description && <div className="db-classroom-card-desc">{c.description}</div>}
                     <div className="db-classroom-card-meta">
-                      Shtuar{" "}
-                      {new Date(c.created_at).toLocaleDateString("sq-AL", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                      Shtuar {formatDate(c.created_at)}
                     </div>
                   </Link>
                   <div className="db-classroom-card-actions">
@@ -361,29 +574,65 @@ function Dashboard() {
         .db-section-title { font-size: 13px; font-weight: 600; color: #64748B; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px; }
         .db-section-title:not(:first-child) { margin-top: 28px; }
         .db-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        .db-quick-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+        .db-quick-action {
+          display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 14px 16px;
+          background: #fff; border: 1px solid #E2E8F0; border-radius: 8px; cursor: pointer;
+          color: #0F172A; font-size: 13.5px; font-weight: 700; text-align: left;
+          transition: border-color 0.14s, box-shadow 0.14s, transform 0.14s;
+        }
+        .db-quick-action:hover { border-color: #BFDBFE; box-shadow: 0 2px 8px rgba(37,99,235,0.08); transform: translateY(-1px); }
+        .db-quick-icon { width: 34px; height: 34px; border-radius: 8px; background: #EFF6FF; color: #2563EB; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .db-summary-grid { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; }
+        .db-summary-item { background: #fff; border: 1px solid #E2E8F0; border-radius: 8px; padding: 18px; min-width: 0; }
+        .db-summary-value { font-size: 26px; font-weight: 800; color: #0F172A; line-height: 1; }
+        .db-summary-class { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .db-summary-label { margin-top: 8px; font-size: 12.5px; color: #64748B; line-height: 1.4; }
+        .db-main-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; }
+        .db-panel { background: #fff; border: 1px solid #E2E8F0; border-radius: 8px; padding: 18px; min-width: 0; }
+        .db-panel-header { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+        .db-panel-title { font-size: 15px; font-weight: 800; color: #0F172A; }
+        .db-panel-subtitle { font-size: 12px; color: #94A3B8; margin-top: 2px; }
+        .db-progress-list, .db-list, .db-activity-list, .db-compact-table { display: flex; flex-direction: column; gap: 12px; }
+        .db-progress-row { min-width: 0; }
+        .db-progress-top, .db-list-row, .db-student-row, .db-activity-row {
+          display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0;
+        }
+        .db-list-row, .db-student-row, .db-activity-row { color: inherit; text-decoration: none; padding: 2px 0; }
+        .db-list-row:hover .db-row-title, .db-student-row:hover .db-row-title, .db-activity-row:hover .db-row-title { color: #2563EB; }
+        .db-row-title { display: block; font-size: 13.5px; font-weight: 700; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .db-row-meta { display: block; font-size: 12px; color: #94A3B8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .db-percent { font-size: 13px; font-weight: 800; color: #0F172A; flex-shrink: 0; }
+        .db-date { font-size: 11.5px; color: #94A3B8; flex-shrink: 0; white-space: nowrap; }
+        .db-progress-track { height: 7px; background: #F1F5F9; border-radius: 999px; overflow: hidden; margin-top: 8px; }
+        .db-progress-fill { height: 100%; background: #2563EB; border-radius: inherit; }
+        .db-activity-row { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; }
+        .db-activity-dot { width: 8px; height: 8px; border-radius: 50%; background: #2563EB; align-self: center; }
+        .db-empty-mini { font-size: 13px; color: #94A3B8; padding: 10px 0; }
         .db-classroom-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
         .db-classroom-card {
-          display: flex; flex-direction: column; background: #fff; border: 1px solid #E2E8F0; border-radius: 10px;
-          overflow: hidden;
-          transition: border-color 0.14s, box-shadow 0.14s;
+          display: flex; flex-direction: column; background: #fff; border: 1px solid #E2E8F0; border-radius: 8px;
+          overflow: hidden; transition: border-color 0.14s, box-shadow 0.14s;
         }
         .db-classroom-card:hover { border-color: #BFDBFE; box-shadow: 0 2px 8px rgba(37,99,235,0.08); }
-        .db-classroom-card-main { display: block; padding: 16px 18px 12px; text-decoration: none; color: inherit; flex: 1; }
+        .db-classroom-card-main { display: block; padding: 16px 18px 12px; text-decoration: none; color: inherit; flex: 1; min-width: 0; }
         .db-classroom-card-grade { font-size: 11px; font-weight: 600; color: #2563EB; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
         .db-classroom-card-name { font-size: 15px; font-weight: 700; color: #0F172A; }
         .db-classroom-card-desc { font-size: 12.5px; color: #94A3B8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .db-classroom-card-meta { font-size: 11.5px; color: #CBD5E1; margin-top: 12px; }
         .db-classroom-card-actions { display: flex; justify-content: flex-end; padding: 0 18px 14px; }
 
-        @media (max-width: 768px) {
+        @media (max-width: 920px) {
           .db-stats-grid { grid-template-columns: repeat(2, 1fr); }
+          .db-quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .db-summary-grid, .db-main-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 560px) {
-          .db-classroom-grid { grid-template-columns: 1fr; }
+          .db-classroom-grid, .db-quick-grid, .db-stats-grid { grid-template-columns: 1fr; }
           .db-section-title:not(:first-child) { margin-top: 22px; }
-        }
-        @media (max-width: 400px) {
-          .db-stats-grid { grid-template-columns: 1fr; }
+          .db-panel, .db-summary-item { padding: 15px; }
+          .db-activity-row { grid-template-columns: 10px minmax(0, 1fr); }
+          .db-activity-row .db-date { grid-column: 2; margin-top: 2px; }
         }
       `}</style>
     </Layout>
