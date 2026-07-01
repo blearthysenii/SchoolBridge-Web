@@ -39,12 +39,22 @@ import {
 
 type User = { full_name: string; email: string; role: string };
 
-type Classroom = { id: number; name: string; grade: number };
+type Classroom = {
+  id: number;
+  name: string;
+  grade: number;
+  start_month?: string | null;
+  start_year?: number | null;
+  end_month?: string | null;
+  end_year?: number | null;
+};
 
 type Student = {
   id: number;
   full_name: string;
   personal_number: string;
+  parent_phone: string | null;
+  final_grade: number | null;
   date_birth: string | null;
   classroom_id: number;
   is_active?: boolean;
@@ -87,6 +97,13 @@ type PendingAction =
   | { kind: "deleteSubject"; id: number; label: string }
   | { kind: "deleteConcept"; id: number; label: string }
   | { kind: "deleteTest"; id: number; label: string };
+
+const formatClassroomPeriod = (classroom: Classroom) => {
+  if (!classroom.start_month || !classroom.start_year || !classroom.end_month || !classroom.end_year) {
+    return null;
+  }
+  return `${classroom.start_month} ${classroom.start_year} – ${classroom.end_month} ${classroom.end_year}`;
+};
 
 function IconPlus() {
   return (
@@ -247,6 +264,8 @@ function ClassroomDetails() {
   // form state
   const [fullName, setFullName] = useState("");
   const [personalNumber, setPersonalNumber] = useState("");
+  const [parentPhone, setParentPhone] = useState("");
+  const [finalGrade, setFinalGrade] = useState("");
   const [dateBirth, setDateBirth] = useState("");
 
   const [subjectName, setSubjectName] = useState("");
@@ -322,8 +341,16 @@ function ClassroomDetails() {
 
   const openModal = (type: ModalType) => {
     setFormError("");
-    setEditingId(null);
-    if (type === "student") { setFullName(""); setPersonalNumber(""); setDateBirth(""); }
+    if (type !== "editStudent" && type !== "editSubject" && type !== "editConcept") {
+      setEditingId(null);
+    }
+    if (type === "student") {
+      setFullName("");
+      setPersonalNumber("");
+      setParentPhone("");
+      setFinalGrade("");
+      setDateBirth("");
+    }
     if (type === "subject") setSubjectName("");
     if (type === "concept") setConceptName("");
     if (type === "test") { setTestTitle(""); setSelectedTestSubjectId(""); }
@@ -367,6 +394,8 @@ function ClassroomDetails() {
     setEditingId(s.id);
     setFullName(s.full_name);
     setPersonalNumber(s.personal_number);
+    setParentPhone(s.parent_phone ?? "");
+    setFinalGrade(s.final_grade !== null && s.final_grade !== undefined ? String(s.final_grade) : "");
     setDateBirth(s.date_birth ? s.date_birth.slice(0, 10) : "");
     openModal("editStudent");
   };
@@ -389,8 +418,8 @@ function ClassroomDetails() {
     if (!id) return;
     setSubmitting(true); setFormError("");
     try {
-      await createStudent(fullName, personalNumber, dateBirth, Number(id));
-      setFullName(""); setPersonalNumber(""); setDateBirth("");
+      await createStudent(fullName, personalNumber, dateBirth, Number(id), parentPhone, finalGrade);
+      setFullName(""); setPersonalNumber(""); setParentPhone(""); setFinalGrade(""); setDateBirth("");
       await loadStudents();
       closeModal();
     } catch (err: any) {
@@ -455,9 +484,11 @@ function ClassroomDetails() {
       await updateStudent(editingId, {
         full_name: fullName,
         personal_number: personalNumber,
+        parent_phone: parentPhone.trim() || null,
+        final_grade: finalGrade ? Number(finalGrade) : null,
         date_birth: dateBirth || null,
       });
-      setFullName(""); setPersonalNumber(""); setDateBirth("");
+      setFullName(""); setPersonalNumber(""); setParentPhone(""); setFinalGrade(""); setDateBirth("");
       await loadStudents();
       closeModal();
       setBanner({ type: "success", text: "Nxënësi u përditësua me sukses." });
@@ -560,7 +591,11 @@ function ClassroomDetails() {
   return (
     <Layout
       title={classroom ? classroom.name : "Detajet e klasës"}
-      subtitle={classroom ? `Viti ${classroom.grade} · Menaxhoni nxënësit, lëndët, konceptet dhe testet` : undefined}
+      subtitle={
+        classroom
+          ? `Viti ${classroom.grade}${formatClassroomPeriod(classroom) ? ` · ${formatClassroomPeriod(classroom)}` : ""} · Menaxhoni nxënësit, lëndët, konceptet dhe testet`
+          : undefined
+      }
       backTo="/dashboard"
       backLabel="Paneli"
       user={user}
@@ -603,6 +638,8 @@ function ClassroomDetails() {
                       <tr>
                         <th>Emri i plotë</th>
                         <th>Numri personal</th>
+                        <th>Telefoni i prindit</th>
+                        <th>Nota finale</th>
                         <th>Datëlindja</th>
                         <th></th>
                       </tr>
@@ -616,6 +653,8 @@ function ClassroomDetails() {
                             </Link>
                           </td>
                           <td className="sb-td-meta">{s.personal_number}</td>
+                          <td className="sb-td-meta">{s.parent_phone || "—"}</td>
+                          <td className="sb-td-meta">{s.final_grade ?? "—"}</td>
                           <td className="sb-td-meta">
                             {s.date_birth
                               ? new Date(s.date_birth).toLocaleDateString("sq-AL", { day: "numeric", month: "short", year: "numeric" })
@@ -823,6 +862,14 @@ function ClassroomDetails() {
             <input className="sb-form-input" type="text" placeholder="Numri personal i nxënësit" value={personalNumber} onChange={(e) => setPersonalNumber(e.target.value)} required />
           </div>
           <div className="sb-form-group">
+            <label className="sb-form-label">Telefoni i prindit <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span></label>
+            <input className="sb-form-input" type="tel" placeholder="p.sh. +383 44 123 456" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
+          </div>
+          <div className="sb-form-group">
+            <label className="sb-form-label">Nota finale <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span></label>
+            <input className="sb-form-input" type="number" placeholder="p.sh. 5" value={finalGrade} onChange={(e) => setFinalGrade(e.target.value)} />
+          </div>
+          <div className="sb-form-group">
             <label className="sb-form-label">Datëlindja <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span></label>
             <input className="sb-form-input" type="date" value={dateBirth} onChange={(e) => setDateBirth(e.target.value)} />
           </div>
@@ -884,6 +931,14 @@ function ClassroomDetails() {
           <div className="sb-form-group">
             <label className="sb-form-label">Numri personal</label>
             <input className="sb-form-input" type="text" placeholder="Numri personal i nxënësit" value={personalNumber} onChange={(e) => setPersonalNumber(e.target.value)} required />
+          </div>
+          <div className="sb-form-group">
+            <label className="sb-form-label">Telefoni i prindit <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span></label>
+            <input className="sb-form-input" type="tel" placeholder="p.sh. +383 44 123 456" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
+          </div>
+          <div className="sb-form-group">
+            <label className="sb-form-label">Nota finale <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span></label>
+            <input className="sb-form-input" type="number" placeholder="p.sh. 5" value={finalGrade} onChange={(e) => setFinalGrade(e.target.value)} />
           </div>
           <div className="sb-form-group">
             <label className="sb-form-label">Datëlindja <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span></label>

@@ -26,7 +26,9 @@ export const createStudent = async (
   fullName: string,
   personalNumber: string,
   dateBirth: string,
-  classroomId: number
+  classroomId: number,
+  parentPhone?: string,
+  finalGrade?: string
 ) => {
   const token = localStorage.getItem("token");
 
@@ -35,6 +37,8 @@ export const createStudent = async (
     {
       full_name: fullName,
       personal_number: personalNumber,
+      parent_phone: parentPhone?.trim() || null,
+      final_grade: finalGrade ? Number(finalGrade) : null,
       date_birth: dateBirth || null,
       classroom_id: classroomId,
     },
@@ -49,7 +53,13 @@ export const createStudent = async (
 
 export const updateStudent = async (
   studentId: number,
-  data: { full_name?: string; personal_number?: string; date_birth?: string | null }
+  data: {
+    full_name?: string;
+    personal_number?: string;
+    parent_phone?: string | null;
+    final_grade?: number | null;
+    date_birth?: string | null;
+  }
 ) => {
   const token = localStorage.getItem("token");
 

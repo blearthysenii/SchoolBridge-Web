@@ -17,7 +17,18 @@ type Classroom = {
   name: string;
   grade: number;
   description?: string | null;
+  start_month?: string | null;
+  start_year?: number | null;
+  end_month?: string | null;
+  end_year?: number | null;
   created_at: string;
+};
+
+const formatClassroomPeriod = (classroom: Classroom) => {
+  if (!classroom.start_month || !classroom.start_year || !classroom.end_month || !classroom.end_year) {
+    return "Periudha pa vendosur";
+  }
+  return `${classroom.start_month} ${classroom.start_year} – ${classroom.end_month} ${classroom.end_year}`;
 };
 
 function IconRestore() {
@@ -102,6 +113,7 @@ export default function InactiveClassrooms() {
               <tr>
                 <th>Emri i klasës</th>
                 <th>Viti</th>
+                <th>Periudha</th>
                 <th>Përshkrimi</th>
                 <th>Shtuar</th>
                 <th></th>
@@ -112,6 +124,7 @@ export default function InactiveClassrooms() {
                 <tr key={c.id}>
                   <td className="sb-td-name">{c.name}</td>
                   <td className="sb-td-meta">Viti {c.grade}</td>
+                  <td className="sb-td-meta">{formatClassroomPeriod(c)}</td>
                   <td className="sb-td-muted">{c.description || "—"}</td>
                   <td className="sb-td-meta">
                     {new Date(c.created_at).toLocaleDateString("sq-AL", {

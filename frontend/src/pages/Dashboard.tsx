@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 import api from "../services/api";
-import { createClassroom, deactivateClassroom, getClassrooms } from "../services/classroomService";
+import { createClassroom, deactivateClassroom, getClassrooms, updateClassroom } from "../services/classroomService";
 import { getDashboardInsights, getDashboardStats } from "../services/dashboardService";
 
 import Layout from "../components/Layout";
@@ -24,6 +24,10 @@ type Classroom = {
   name: string;
   grade: number;
   description?: string;
+  start_month?: string | null;
+  start_year?: number | null;
+  end_month?: string | null;
+  end_year?: number | null;
   is_active?: boolean;
   created_at: string;
 };
@@ -89,6 +93,13 @@ type DashboardInsights = {
   students_need_attention: LowStudent[];
   recent_tests: RecentTest[];
   recent_activity: RecentActivity[];
+};
+
+type ClassroomWorkflow = {
+  tab: "students" | "tests";
+  action: "new-student" | "new-test";
+  title: string;
+  description: string;
 };
 
 function IconClassroom() {
@@ -160,10 +171,51 @@ function IconArchive() {
     </svg>
   );
 }
+function IconEdit() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+    </svg>
+  );
+}
 
 const formatPercent = (value?: number) => `${Math.round(value ?? 0)}%`;
 const formatDate = (value: string) =>
   new Date(value).toLocaleDateString("sq-AL", { day: "numeric", month: "short", year: "numeric" });
+const SCHOOL_MONTHS = ["Shtator", "Tetor", "Nëntor", "Dhjetor", "Janar", "Shkurt", "Mars", "Prill", "Maj", "Qershor", "Korrik", "Gusht"];
+const CALENDAR_MONTH_ORDER: Record<string, number> = {
+  Janar: 1,
+  Shkurt: 2,
+  Mars: 3,
+  Prill: 4,
+  Maj: 5,
+  Qershor: 6,
+  Korrik: 7,
+  Gusht: 8,
+  Shtator: 9,
+  Tetor: 10,
+  Nëntor: 11,
+  Dhjetor: 12,
+};
+const currentYear = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: 10 }, (_, i) => currentYear - 3 + i);
+const formatClassroomPeriod = (classroom: Classroom) => {
+  if (!classroom.start_month || !classroom.start_year || !classroom.end_month || !classroom.end_year) {
+    return "Periudha pa vendosur";
+  }
+  return `${classroom.start_month} ${classroom.start_year} – ${classroom.end_month} ${classroom.end_year}`;
+};
+const isPeriodBeforeStart = (
+  startMonth: string,
+  startYear: number,
+  endMonth: string,
+  endYear: number,
+) => {
+  const startKey = [startYear, CALENDAR_MONTH_ORDER[startMonth] ?? 0];
+  const endKey = [endYear, CALENDAR_MONTH_ORDER[endMonth] ?? 0];
+  return endKey[0] < startKey[0] || (endKey[0] === startKey[0] && endKey[1] < startKey[1]);
+};
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -177,12 +229,18 @@ function Dashboard() {
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState("");
   const [deactivatingId, setDeactivatingId] = useState<number | null>(null);
+  const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null);
   const [pendingClassroom, setPendingClassroom] = useState<Classroom | null>(null);
+  const [pendingWorkflow, setPendingWorkflow] = useState<ClassroomWorkflow | null>(null);
   const [banner, setBanner] = useState<{ type: "success" | "info" | "error"; text: string } | null>(null);
 
   const [name, setName] = useState("");
   const [grade, setGrade] = useState(1);
   const [description, setDescription] = useState("");
+  const [startMonth, setStartMonth] = useState("Shtator");
+  const [startYear, setStartYear] = useState(currentYear);
+  const [endMonth, setEndMonth] = useState("Qershor");
+  const [endYear, setEndYear] = useState(currentYear + 1);
 
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -203,6 +261,46 @@ function Dashboard() {
 
   const refreshDashboard = async () => {
     await Promise.all([loadClassrooms(), loadStats(), loadInsights()]);
+  };
+
+  const resetClassroomForm = () => {
+    setName("");
+    setGrade(1);
+    setDescription("");
+    setStartMonth("Shtator");
+    setStartYear(currentYear);
+    setEndMonth("Qershor");
+    setEndYear(currentYear + 1);
+  };
+
+  const openCreateClassroomModal = () => {
+    setEditingClassroom(null);
+    resetClassroomForm();
+    setFormError("");
+    setModalOpen(true);
+  };
+
+  const openEditClassroomModal = (classroom: Classroom) => {
+    setEditingClassroom(classroom);
+    setName(classroom.name);
+    setGrade(classroom.grade);
+    setDescription(classroom.description ?? "");
+    setStartMonth(classroom.start_month ?? "Shtator");
+    setStartYear(classroom.start_year ?? currentYear);
+    setEndMonth(classroom.end_month ?? "Qershor");
+    setEndYear(classroom.end_year ?? currentYear + 1);
+    setFormError("");
+    setModalOpen(true);
+  };
+
+  const closeClassroomModal = () => {
+    setModalOpen(false);
+    setEditingClassroom(null);
+    setFormError("");
+  };
+
+  const closeWorkflowModal = () => {
+    setPendingWorkflow(null);
   };
 
   useEffect(() => {
@@ -226,34 +324,70 @@ function Dashboard() {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setModalOpen(false);
+      if (e.key === "Escape") closeClassroomModal();
+      if (e.key === "Escape") closeWorkflowModal();
     };
-    if (modalOpen) document.addEventListener("keydown", handleKey);
+    if (modalOpen || pendingWorkflow) document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [modalOpen]);
+  }, [modalOpen, pendingWorkflow]);
 
   const openClassroomWorkflow = (tab: "students" | "tests", action: "new-student" | "new-test") => {
-    const classroom = classrooms[0];
-    if (!classroom) {
+    if (classrooms.length === 0) {
       setBanner({ type: "error", text: "Krijoni së pari një klasë aktive." });
       return;
     }
-    navigate(`/classrooms/${classroom.id}?tab=${tab}&action=${action}`);
+    setPendingWorkflow({
+      tab,
+      action,
+      title: action === "new-test" ? "Zgjidh klasën për testin" : "Zgjidh klasën për nxënësin",
+      description:
+        action === "new-test"
+          ? "Zgjidhni klasën ku dëshironi të krijoni testin e ri."
+          : "Zgjidhni klasën ku dëshironi të shtoni nxënësin.",
+    });
   };
 
-  const handleCreateClassroom = async (e: React.FormEvent) => {
+  const handleWorkflowClassroomSelect = (classroomId: number) => {
+    if (!pendingWorkflow) return;
+    const { tab, action } = pendingWorkflow;
+    setPendingWorkflow(null);
+    navigate(`/classrooms/${classroomId}?tab=${tab}&action=${action}`);
+  };
+
+  const handleSaveClassroom = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
+
+    if (isPeriodBeforeStart(startMonth, startYear, endMonth, endYear)) {
+      setFormError("Data e mbarimit nuk mund të jetë para datës së fillimit.");
+      return;
+    }
+
     setCreating(true);
     try {
-      await createClassroom(name, grade, description);
-      setName("");
-      setGrade(1);
-      setDescription("");
-      setModalOpen(false);
+      const payload = {
+        name,
+        grade,
+        description,
+        start_month: startMonth,
+        start_year: startYear,
+        end_month: endMonth,
+        end_year: endYear,
+      };
+
+      if (editingClassroom) {
+        await updateClassroom(editingClassroom.id, payload);
+        setBanner({ type: "success", text: `Klasa "${name}" u përditësua me sukses.` });
+      } else {
+        await createClassroom(payload);
+        setBanner({ type: "success", text: `Klasa "${name}" u krijua me sukses.` });
+      }
+
+      resetClassroomForm();
+      closeClassroomModal();
       await refreshDashboard();
-    } catch {
-      setFormError("Dështoi krijimi i klasës. Provoni përsëri.");
+    } catch (err: any) {
+      setFormError(err.response?.data?.detail || "Dështoi ruajtja e klasës. Provoni përsëri.");
     } finally {
       setCreating(false);
     }
@@ -278,7 +412,7 @@ function Dashboard() {
   };
 
   const quickActions = [
-    { label: "Krijo klasë", icon: <IconPlus />, onClick: () => setModalOpen(true) },
+    { label: "Krijo klasë", icon: <IconPlus />, onClick: openCreateClassroomModal },
     { label: "Krijo test", icon: <IconTests />, onClick: () => openClassroomWorkflow("tests", "new-test") },
     { label: "Shto nxënës", icon: <IconStudents />, onClick: () => openClassroomWorkflow("students", "new-student") },
     { label: "Dorëzo rezultate", icon: <IconResults />, onClick: () => navigate("/submit-results") },
@@ -290,7 +424,7 @@ function Dashboard() {
       subtitle={new Date().toLocaleDateString("sq-AL", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
       user={user}
       actions={
-        <button className="sb-btn sb-btn-primary" onClick={() => setModalOpen(true)}>
+        <button className="sb-btn sb-btn-primary" onClick={openCreateClassroomModal}>
           <IconPlus />
           Klasa e re
         </button>
@@ -460,12 +594,20 @@ function Dashboard() {
                   <Link to={`/classrooms/${c.id}`} className="db-classroom-card-main">
                     <div className="db-classroom-card-grade">Viti {c.grade}</div>
                     <div className="db-classroom-card-name">{c.name}</div>
+                    <div className="db-classroom-card-period">{formatClassroomPeriod(c)}</div>
                     {c.description && <div className="db-classroom-card-desc">{c.description}</div>}
                     <div className="db-classroom-card-meta">
                       Shtuar {formatDate(c.created_at)}
                     </div>
                   </Link>
                   <div className="db-classroom-card-actions">
+                    <button
+                      className="sb-btn sb-btn-secondary"
+                      onClick={() => openEditClassroomModal(c)}
+                    >
+                      <IconEdit />
+                      Ndrysho
+                    </button>
                     <button
                       className="sb-btn sb-btn-warn-ghost"
                       onClick={() => setPendingClassroom(c)}
@@ -483,7 +625,7 @@ function Dashboard() {
               title="Nuk ka klasa ende"
               description='Krijoni klasën tuaj të parë duke klikuar "Klasa e re".'
               action={
-                <button className="sb-btn sb-btn-primary" onClick={() => setModalOpen(true)}>
+                <button className="sb-btn sb-btn-primary" onClick={openCreateClassroomModal}>
                   <IconPlus />
                   Klasa e re
                 </button>
@@ -494,18 +636,18 @@ function Dashboard() {
       )}
 
       {modalOpen && (
-        <div className="sb-modal-overlay" onClick={(e) => e.target === e.currentTarget && setModalOpen(false)}>
+        <div className="sb-modal-overlay" onClick={(e) => e.target === e.currentTarget && closeClassroomModal()}>
           <div className="sb-modal" ref={modalRef}>
             <div className="sb-modal-header">
-              <div className="sb-modal-title">Krijo klasë të re</div>
-              <button className="sb-modal-close" onClick={() => setModalOpen(false)} aria-label="Mbyll">
+              <div className="sb-modal-title">{editingClassroom ? "Ndrysho klasën" : "Krijo klasë të re"}</div>
+              <button className="sb-modal-close" onClick={closeClassroomModal} aria-label="Mbyll">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>
 
-            <form onSubmit={handleCreateClassroom}>
+            <form onSubmit={handleSaveClassroom}>
               <div className="sb-form-group">
                 <label className="sb-form-label">Emri i klasës</label>
                 <input
@@ -532,6 +674,58 @@ function Dashboard() {
               </div>
 
               <div className="sb-form-group">
+                <label className="sb-form-label">Fillon</label>
+                <div className="db-period-row">
+                  <select
+                    className="sb-form-input"
+                    value={startMonth}
+                    onChange={(e) => setStartMonth(e.target.value)}
+                    required
+                  >
+                    {SCHOOL_MONTHS.map((month) => (
+                      <option key={month} value={month}>{month}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="sb-form-input"
+                    value={startYear}
+                    onChange={(e) => setStartYear(Number(e.target.value))}
+                    required
+                  >
+                    {YEAR_OPTIONS.map((year) => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="sb-form-group">
+                <label className="sb-form-label">Përfundon</label>
+                <div className="db-period-row">
+                  <select
+                    className="sb-form-input"
+                    value={endMonth}
+                    onChange={(e) => setEndMonth(e.target.value)}
+                    required
+                  >
+                    {SCHOOL_MONTHS.map((month) => (
+                      <option key={month} value={month}>{month}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="sb-form-input"
+                    value={endYear}
+                    onChange={(e) => setEndYear(Number(e.target.value))}
+                    required
+                  >
+                    {YEAR_OPTIONS.map((year) => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="sb-form-group">
                 <label className="sb-form-label">
                   Përshkrim <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span>
                 </label>
@@ -547,14 +741,54 @@ function Dashboard() {
               {formError && <div className="sb-form-error">{formError}</div>}
 
               <div className="sb-modal-actions">
-                <button type="button" className="sb-btn sb-btn-secondary" onClick={() => setModalOpen(false)}>
+                <button type="button" className="sb-btn sb-btn-secondary" onClick={closeClassroomModal}>
                   Anulo
                 </button>
                 <button type="submit" className="sb-btn sb-btn-primary" disabled={creating}>
-                  {creating ? "Duke krijuar…" : "Krijo klasën"}
+                  {creating ? "Duke ruajtur…" : editingClassroom ? "Ruaj ndryshimet" : "Krijo klasën"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {pendingWorkflow && (
+        <div className="sb-modal-overlay" onClick={(e) => e.target === e.currentTarget && closeWorkflowModal()}>
+          <div className="sb-modal db-classroom-picker-modal">
+            <div className="sb-modal-header">
+              <div className="sb-modal-title">{pendingWorkflow.title}</div>
+              <button className="sb-modal-close" onClick={closeWorkflowModal} aria-label="Mbyll">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="db-picker-intro">{pendingWorkflow.description}</div>
+
+            <div className="db-classroom-picker-list">
+              {classrooms.map((classroom) => (
+                <button
+                  key={classroom.id}
+                  type="button"
+                  className="db-classroom-picker-option"
+                  onClick={() => handleWorkflowClassroomSelect(classroom.id)}
+                >
+                  <span className="db-picker-main">
+                    <span className="db-picker-title">{classroom.name}</span>
+                    <span className="db-picker-period">{formatClassroomPeriod(classroom)}</span>
+                  </span>
+                  <span className="db-picker-badge">Viti {classroom.grade}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="sb-modal-actions">
+              <button type="button" className="sb-btn sb-btn-secondary" onClick={closeWorkflowModal}>
+                Anulo
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -642,9 +876,31 @@ function Dashboard() {
         .db-classroom-card-main { display: block; padding: 18px 20px 12px; text-decoration: none; color: inherit; flex: 1; min-width: 0; }
         .db-classroom-card-grade { font-size: 11px; font-weight: 800; color: #2563EB; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 5px; }
         .db-classroom-card-name { font-size: 15.5px; font-weight: 800; color: #0F172A; }
+        .db-classroom-card-period { font-size: 12.5px; color: #475569; margin-top: 5px; font-weight: 700; }
         .db-classroom-card-desc { font-size: 12.5px; color: #94A3B8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .db-classroom-card-meta { font-size: 11.5px; color: #CBD5E1; margin-top: 12px; }
-        .db-classroom-card-actions { display: flex; justify-content: flex-end; padding: 0 20px 16px; }
+        .db-classroom-card-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; padding: 0 20px 16px; }
+        .db-period-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 10px; }
+        .db-classroom-picker-modal { max-width: 560px; }
+        .db-picker-intro { font-size: 13px; color: #64748B; line-height: 1.5; margin: -4px 0 16px; }
+        .db-classroom-picker-list { display: flex; flex-direction: column; gap: 10px; max-height: min(420px, 58vh); overflow-y: auto; padding-right: 2px; }
+        .db-classroom-picker-option {
+          width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px;
+          border: 1px solid rgba(226,232,240,0.95); background: rgba(248,250,252,0.72);
+          border-radius: 18px; padding: 14px 16px; color: inherit; cursor: pointer; text-align: left;
+          transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+        }
+        .db-classroom-picker-option:hover {
+          border-color: rgba(37,99,235,0.34); background: #fff; transform: translateY(-1px);
+          box-shadow: 0 14px 32px rgba(15,23,42,0.08);
+        }
+        .db-picker-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+        .db-picker-title { font-size: 14px; font-weight: 850; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .db-picker-period { font-size: 12px; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .db-picker-badge {
+          flex-shrink: 0; border-radius: 999px; padding: 6px 10px;
+          background: rgba(37,99,235,0.1); color: #2563EB; font-size: 11.5px; font-weight: 850;
+        }
 
         @media (max-width: 920px) {
           .db-stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -657,6 +913,8 @@ function Dashboard() {
           .db-panel, .db-summary-item { padding: 15px; }
           .db-activity-row { grid-template-columns: 10px minmax(0, 1fr); }
           .db-activity-row .db-date { grid-column: 2; margin-top: 2px; }
+          .db-period-row { grid-template-columns: 1fr; }
+          .db-classroom-picker-option { align-items: flex-start; flex-direction: column; }
         }
       `}</style>
     </Layout>

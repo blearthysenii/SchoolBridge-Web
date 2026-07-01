@@ -50,6 +50,8 @@ type ConceptAnalytics = {
 type StudentAnalytics = {
   student_id: number;
   student_name: string;
+  parent_phone: string | null;
+  final_grade: number | null;
   total_results: number;
   correct: number;
   incorrect: number;
@@ -239,6 +241,12 @@ function StudentResults() {
   ];
 
   const rateColor = (rate: number) => rate >= 80 ? "#22c55e" : rate >= 50 ? "#f59e0b" : "#ef4444";
+  const studentMeta = [
+    `ID: ${id}`,
+    analytics?.parent_phone ? `Prindi: ${analytics.parent_phone}` : null,
+    analytics?.final_grade !== null && analytics?.final_grade !== undefined ? `Nota finale: ${analytics.final_grade}` : null,
+    "Rezultatet dhe analitika",
+  ].filter(Boolean).join(" · ");
 
   return (
     <>
@@ -601,7 +609,7 @@ function StudentResults() {
             </div>
             <div>
               <div className="student-name">{analytics?.student_name ?? `Nxënësi #${id}`}</div>
-              <div className="student-sub">ID: {id} · Rezultatet dhe analitika</div>
+              <div className="student-sub">{studentMeta}</div>
             </div>
           </div>
         </div>
