@@ -1,73 +1,125 @@
-# React + TypeScript + Vite
+# SchoolBridge Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SchoolBridge Frontend is the React application for teachers and students. Teachers manage classrooms, students, subjects, topics, tests, online sessions, results, and analytics. Students can join online tests without creating accounts.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19
+- TypeScript
+- Vite
+- React Router
+- Axios
+- Recharts
+- Lucide React
+- Google OAuth
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Login, register, forgot password, reset password, and Google login
+- "Më mbaj të kyçur" session persistence
+- Protected routes that restore valid tokens automatically
+- Dashboard with class, student, test, result, and insight summaries
+- Classroom management
+- Student create/edit/details/result flows
+- Subject and topic management
+- Test builder and PDF test download
+- Online test session control for teachers
+- Public online test page for students
+- Autosaved student answers during online tests
+- AI grading review with teacher overrides
+- AI session analytics and PDF export
+- Student, test, classroom, and topic analytics
+- Responsive UI for desktop, tablet, and mobile
 
-## Expanding the ESLint configuration
+## Routes
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Public routes:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+/
+/login
+/register
+/forgot-password
+/reset-password
+/complete-google-register
+/online-test
+/online-test/:sessionCode
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Protected teacher routes:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+/dashboard
+/classrooms/:id
+/tests/:id
+/tests/:id/analytics
+/students/:id/results
+/submit-results
+/test-sessions/:code
+/inactive-classrooms
+/inactive-students
+/inactive-subjects
+/inactive-concepts
+/archived-tests
 ```
+
+## Environment Variables
+
+Create `.env` in the frontend directory:
+
+```env
+VITE_API_URL=http://localhost:8000
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+```
+
+## Run Locally
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Default local URL:
+
+```text
+http://localhost:5173
+```
+
+## Build
+
+```bash
+npm run lint
+npm run build
+```
+
+Preview the production build:
+
+```bash
+npm run preview
+```
+
+## Tests
+
+This frontend currently does not include a unit test runner such as Vitest, Jest, or React Testing Library. The safe automated checks available today are:
+
+```bash
+npm run lint
+npm run build
+```
+
+Recommended next step: add Vitest with React Testing Library for route guards, auth token persistence, and the online test autosave flow.
+
+## Authentication Notes
+
+The app stores normal sessions in `sessionStorage` and remembered sessions in `localStorage`. All API calls use the shared auth helper and Axios interceptor, so protected routes and services read tokens consistently.
+
+Logout clears both `localStorage` and `sessionStorage`.
+
+## Deployment Notes
+
+- Set `VITE_API_URL` to the deployed backend API URL.
+- Set `VITE_GOOGLE_CLIENT_ID` to the Google OAuth client configured for the deployed domain.
+- Configure the backend `CORS_ORIGINS` to include the deployed frontend URL.
+- Run `npm run build` and deploy the `dist` folder to the frontend host.
+- Configure SPA fallback so unknown routes serve `index.html`.

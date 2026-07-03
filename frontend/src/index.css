@@ -16,6 +16,10 @@
   --sb-muted: #64748b;
 }
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 html, body {
   margin: 0;
   background:
@@ -34,6 +38,74 @@ html, body {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+img, svg, video, canvas {
+  max-width: 100%;
+}
+
+button, input, select, textarea {
+  font: inherit;
+  max-width: 100%;
+}
+
+textarea {
+  min-width: 0;
+}
+
+button {
+  touch-action: manipulation;
+}
+
+.sb-table-wrap,
+.table-scroll,
+.session-table-wrap {
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sb-btn,
+.btn-primary,
+.btn-secondary,
+.btn-outline,
+.btn-success,
+.btn-danger-soft,
+.public-btn {
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .sb-btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-outline,
+  .btn-success,
+  .btn-danger-soft,
+  .public-btn {
+    white-space: normal;
+    text-align: center;
+  }
+
+  .modal-overlay,
+  .sb-modal-overlay,
+  .cfd-overlay {
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
+  .modal,
+  .sb-modal,
+  .cfd-modal {
+    max-width: calc(100vw - 24px);
+    max-height: calc(100svh - 24px);
+    overflow-y: auto;
+  }
+
+  .sb-table-wrap,
+  .table-scroll,
+  .session-table-wrap {
+    overflow-x: auto;
+  }
 }
 
 @keyframes sb-spin {

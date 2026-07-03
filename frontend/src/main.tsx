@@ -5,9 +5,11 @@ import "./index.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { ToastProvider } from "./components/ToastProvider";
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "50105892629-0nt0fu8b6k8bmajdemq8ipqm41kcvbg3.apps.googleusercontent.com";
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <GoogleOAuthProvider clientId="50105892629-0nt0fu8b6k8bmajdemq8ipqm41kcvbg3.apps.googleusercontent.com">
+    <GoogleOAuthProvider clientId={googleClientId}>
       <ToastProvider>
         <App />
       </ToastProvider>
