@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { CheckCircle2, Clipboard, Pause, Play, RotateCcw, Square, Users } from "lucide-react";
+import { CheckCircle2, Clipboard, Download, Pause, Play, RotateCcw, Square, Users } from "lucide-react";
+import { getErrorMessage, hasApiStatus } from "../services/errors";
 
 import api from "../services/api";
 import Layout from "../components/Layout";
@@ -8,6 +9,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import Alert from "../components/Alert";
 import {
   endTestSession,
+  downloadSessionAiAnalysisPdf,
   generateSessionAiAnalysis,
   getSessionAiAnalysis,
   getTestSessionAnalytics,
@@ -60,6 +62,7 @@ type AnswerResult = {
   expected_answer: string | null;
   ai_feedback_for_teacher: string | null;
   ai_confidence: number | null;
+  needs_teacher_review: boolean;
   teacher_points_override: number | null;
   teacher_feedback_override: string | null;
   feedback_for_teacher: string | null;
@@ -148,6 +151,7 @@ function TestSessionControl() {
   const [expandedAttemptId, setExpandedAttemptId] = useState<number | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<AiAnalysis | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiPdfLoading, setAiPdfLoading] = useState(false);
   const [aiError, setAiError] = useState("");
   const [editingAnswerKey, setEditingAnswerKey] = useState<string | null>(null);
   const [overrideDraft, setOverrideDraft] = useState({
@@ -167,12 +171,12 @@ function TestSessionControl() {
       const response = await getSessionAiAnalysis(sessionId);
       setAiAnalysis(response.data);
       setAiError("");
-    } catch (err: any) {
-      if (err.response?.status === 404) {
+    } catch (err: unknown) {
+      if (hasApiStatus(err, 404)) {
         setAiAnalysis(null);
         return;
       }
-      setAiError(err.response?.data?.detail || "Dështoi ngarkimi i analizës nga AI.");
+      setAiError(getErrorMessage(err, "Dështoi ngarkimi i analizës nga AI."));
     }
   }, []);
 
@@ -219,7 +223,7 @@ function TestSessionControl() {
     return () => window.clearInterval(interval);
   }, [code, loadData]);
 
-  const runAction = async (label: string, action: () => Promise<any>) => {
+  const runAction = async (label: string, action: () => Promise<unknown>) => {
     if (!session) return;
     setActionLoading(label);
     setAlert(null);
@@ -227,8 +231,8 @@ function TestSessionControl() {
       await action();
       await loadData(false);
       setAlert({ type: "success", text: "Seanca u përditësua me sukses." });
-    } catch (err: any) {
-      setAlert({ type: "error", text: err.response?.data?.detail || "Veprimi dështoi." });
+    } catch (err: unknown) {
+      setAlert({ type: "error", text: getErrorMessage(err, "Veprimi dështoi.") });
     } finally {
       setActionLoading("");
     }
@@ -252,10 +256,33 @@ function TestSessionControl() {
         type: "success",
         text: force ? "Analiza nga AI u rigjenerua me sukses." : "Analiza nga AI u krijua me sukses.",
       });
-    } catch (err: any) {
-      setAiError(err.response?.data?.detail || "Dështoi analiza nga AI.");
+    } catch (err: unknown) {
+      setAiError(getErrorMessage(err, "Dështoi analiza nga AI."));
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handleAiPdfDownload = async () => {
+    if (!session) return;
+
+    setAiPdfLoading(true);
+    setAiError("");
+    try {
+      const response = await downloadSessionAiAnalysisPdf(session.id);
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `schoolbridge-ai-analysis-${session.session_code}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      setAiError(getErrorMessage(err, "Dështoi shkarkimi i raportit PDF."));
+    } finally {
+      setAiPdfLoading(false);
     }
   };
 
@@ -267,6 +294,15 @@ function TestSessionControl() {
       points: String(answer.points_earned),
       feedback: answer.feedback_for_teacher ?? answer.ai_feedback_for_teacher ?? "",
       isCorrect: answer.is_correct ?? answer.points_earned > 0,
+    });
+  };
+
+  const startAnswerMark = (attemptId: number, answer: AnswerResult, isCorrect: boolean) => {
+    setEditingAnswerKey(getAnswerKey(attemptId, answer.answer_id));
+    setOverrideDraft({
+      points: isCorrect ? String(answer.max_points) : "0",
+      feedback: answer.feedback_for_teacher ?? answer.ai_feedback_for_teacher ?? "",
+      isCorrect,
     });
   };
 
@@ -291,8 +327,8 @@ function TestSessionControl() {
       await loadData(false);
       setExpandedAttemptId(attemptId);
       setAlert({ type: "success", text: "Vlerësimi u ruajt nga profesori." });
-    } catch (err: any) {
-      setAlert({ type: "error", text: err.response?.data?.detail || "Dështoi ruajtja e vlerësimit." });
+    } catch (err: unknown) {
+      setAlert({ type: "error", text: getErrorMessage(err, "Dështoi ruajtja e vlerësimit.") });
     } finally {
       setSavingAnswerId(null);
     }
@@ -300,15 +336,15 @@ function TestSessionControl() {
 
   if (loading) {
     return (
-      <Layout title="Seanca online" backTo="/dashboard" backLabel="Paneli" user={user}>
-        <LoadingSpinner text="Duke ngarkuar seancën online…" />
+      <Layout title="Seanca në internet" backTo="/dashboard" backLabel="Paneli" user={user}>
+        <LoadingSpinner text="Duke ngarkuar seancën në internet…" />
       </Layout>
     );
   }
 
   if (!session) {
     return (
-      <Layout title="Seanca online" backTo="/dashboard" backLabel="Paneli" user={user}>
+      <Layout title="Seanca në internet" backTo="/dashboard" backLabel="Paneli" user={user}>
         <Alert type="error" message="Seanca nuk u gjet." />
       </Layout>
     );
@@ -319,7 +355,7 @@ function TestSessionControl() {
   return (
     <Layout
       title={session.test_title}
-      subtitle={`${session.classroom_name} · Seancë online`}
+      subtitle={`${session.classroom_name} · Seancë në internet`}
       backTo={`/tests/${session.test_id}`}
       backLabel="Testi"
       user={user}
@@ -351,28 +387,28 @@ function TestSessionControl() {
             disabled={session.status !== "waiting" || !!actionLoading}
             onClick={() => runAction("start", () => startTestSession(session.id))}
           >
-            <Play size={15} /> {actionLoading === "start" ? "Duke nisur…" : "Start"}
+            <Play size={15} /> {actionLoading === "start" ? "Duke nisur…" : "Nis"}
           </button>
           <button
             className="sb-btn sb-btn-secondary"
             disabled={session.status !== "active" || !!actionLoading}
             onClick={() => runAction("pause", () => pauseTestSession(session.id))}
           >
-            <Pause size={15} /> Pause
+            <Pause size={15} /> Pauzo
           </button>
           <button
             className="sb-btn sb-btn-secondary"
             disabled={session.status !== "paused" || !!actionLoading}
             onClick={() => runAction("resume", () => resumeTestSession(session.id))}
           >
-            <RotateCcw size={15} /> Resume
+            <RotateCcw size={15} /> Vazhdo
           </button>
           <button
             className="sb-btn sb-btn-danger"
             disabled={session.status === "ended" || !!actionLoading}
             onClick={() => runAction("end", () => endTestSession(session.id))}
           >
-            <Square size={14} /> End
+            <Square size={14} /> Përfundo
           </button>
         </div>
       </div>
@@ -415,6 +451,11 @@ function TestSessionControl() {
             {aiAnalysis && (
               <button className="sb-btn sb-btn-secondary" onClick={() => handleAiAnalysis(true)} disabled={aiLoading}>
                 {aiLoading ? "Duke analizuar..." : "Regjenero Analizën"}
+              </button>
+            )}
+            {aiAnalysis && (
+              <button className="sb-btn sb-btn-secondary" onClick={handleAiPdfDownload} disabled={aiPdfLoading}>
+                <Download size={14} /> {aiPdfLoading ? "Duke shkarkuar..." : "Shkarko PDF"}
               </button>
             )}
           </div>
@@ -533,7 +574,7 @@ function TestSessionControl() {
                         const answerKey = getAnswerKey(attempt.attempt_id, answer.answer_id);
                         const isEditing = editingAnswerKey === answerKey;
                         const studentAnswer = answer.selected_option_text || answer.written_answer || "—";
-                        const finalFeedback = answer.feedback_for_teacher || "Nuk ka feedback.";
+                        const finalFeedback = answer.feedback_for_teacher || "Nuk ka komente.";
 
                         return (
                           <div key={answerKey} className="answer-row answer-row-editable">
@@ -543,10 +584,16 @@ function TestSessionControl() {
                               <em>Përgjigjja e nxënësit: {studentAnswer}</em>
 
                               <div className="ai-grade-detail">
-                                <span>{answer.ai_feedback_for_teacher || answer.ai_confidence !== null ? "Vlerësimi fillestar nga AI" : "Vlerësuar nga sistemi"}</span>
-                                <em>AI Score: {answer.ai_points_earned}/{answer.max_points}</em>
+                                <span>
+                                  {answer.needs_teacher_review
+                                    ? "Kërkon rishikim nga mësuesi"
+                                    : answer.ai_feedback_for_teacher || answer.ai_confidence !== null
+                                      ? "Vlerësimi fillestar nga AI"
+                                      : "Vlerësuar nga sistemi"}
+                                </span>
+                                <em>Pikët nga AI: {answer.ai_points_earned}/{answer.max_points}</em>
                                 {answer.ai_feedback_for_teacher && (
-                                  <em>AI Feedback: {answer.ai_feedback_for_teacher}</em>
+                                  <em>Komenti i AI-së: {answer.ai_feedback_for_teacher}</em>
                                 )}
                                 {answer.ai_confidence !== null && (
                                   <em>Besueshmëria: {Math.round(answer.ai_confidence * 100)}%</em>
@@ -556,7 +603,7 @@ function TestSessionControl() {
                               {answer.graded_by === "teacher" && (
                                 <div className="teacher-grade-detail">
                                   <span>Ndryshuar nga profesori</span>
-                                  <em>Feedback final: {finalFeedback}</em>
+                                  <em>Komenti final: {finalFeedback}</em>
                                 </div>
                               )}
 
@@ -573,20 +620,36 @@ function TestSessionControl() {
                                     />
                                   </label>
                                   <label>
-                                    Feedback për profesorin
+                                    Komenti për mësuesin
                                     <textarea
                                       value={overrideDraft.feedback}
                                       onChange={(event) => setOverrideDraft((prev) => ({ ...prev, feedback: event.target.value }))}
                                     />
                                   </label>
-                                  <label className="override-checkbox">
-                                    <input
-                                      type="checkbox"
-                                      checked={overrideDraft.isCorrect}
-                                      onChange={(event) => setOverrideDraft((prev) => ({ ...prev, isCorrect: event.target.checked }))}
-                                    />
-                                    Shëno si përgjigje e saktë
-                                  </label>
+                                  <div className="override-mark-row">
+                                    <button
+                                      type="button"
+                                      className={`sb-btn ${overrideDraft.isCorrect ? "sb-btn-primary" : "sb-btn-secondary"}`}
+                                      onClick={() => setOverrideDraft((prev) => ({
+                                        ...prev,
+                                        points: String(answer.max_points),
+                                        isCorrect: true,
+                                      }))}
+                                    >
+                                      Shëno saktë
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={`sb-btn ${!overrideDraft.isCorrect ? "sb-btn-primary" : "sb-btn-secondary"}`}
+                                      onClick={() => setOverrideDraft((prev) => ({
+                                        ...prev,
+                                        points: "0",
+                                        isCorrect: false,
+                                      }))}
+                                    >
+                                      Shëno gabim
+                                    </button>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -604,7 +667,13 @@ function TestSessionControl() {
                                       Ndrysho pikët
                                     </button>
                                     <button className="sb-btn sb-btn-secondary" onClick={() => startAnswerEdit(attempt.attempt_id, answer)}>
-                                      Ndrysho feedback-un
+                                      Ndrysho komentin
+                                    </button>
+                                    <button className="sb-btn sb-btn-secondary" onClick={() => startAnswerMark(attempt.attempt_id, answer, true)}>
+                                      Shëno saktë
+                                    </button>
+                                    <button className="sb-btn sb-btn-secondary" onClick={() => startAnswerMark(attempt.attempt_id, answer, false)}>
+                                      Shëno gabim
                                     </button>
                                   </>
                                 ) : (
@@ -645,6 +714,7 @@ const sessionStyles = `
     border-radius: 22px; padding: 22px; box-shadow: 0 16px 38px rgba(15,23,42,0.07);
     margin-bottom: 16px;
   }
+  .session-hero > div:first-child { min-width: 0; flex: 1 1 320px; }
   .session-status { display: inline-flex; border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 800; margin-bottom: 12px; background: #f1f5f9; color: #475569; }
   .session-status.active { background: #dcfce7; color: #15803d; }
   .session-status.paused { background: #fef3c7; color: #b45309; }
@@ -653,7 +723,7 @@ const sessionStyles = `
   .session-code { font-size: 42px; line-height: 1; font-weight: 850; color: #0f172a; letter-spacing: 0; margin-top: 6px; }
   .session-link-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; color: #64748b; font-size: 13px; }
   .session-link-row span { word-break: break-all; }
-  .session-controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .session-controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
   .session-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
   .stat-tile, .session-panel {
     background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.74);
@@ -732,8 +802,8 @@ const sessionStyles = `
     padding: 9px 10px;
   }
   .override-editor textarea { min-height: 76px; resize: vertical; }
-  .override-checkbox { grid-column: 1 / -1; flex-direction: row !important; align-items: center; }
-  .override-checkbox input { width: 16px; height: 16px; }
+  .override-mark-row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+  .override-mark-row .sb-btn { min-height: 34px; padding: 7px 10px; font-size: 12px; }
   .result-card { border: 1px solid rgba(226,232,240,0.78); border-radius: 18px; background: rgba(255,255,255,0.48); overflow: hidden; }
   .result-head { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; border: none; background: transparent; text-align: left; cursor: pointer; }
   .result-head strong { display: block; color: #0f172a; font-size: 14px; }
@@ -748,7 +818,11 @@ const sessionStyles = `
   }
   @media (max-width: 560px) {
     .session-code { font-size: 32px; }
-    .session-controls .sb-btn { flex: 1; justify-content: center; }
+    .session-hero { padding: 18px; }
+    .session-controls { width: 100%; }
+    .session-controls .sb-btn { flex: 1 1 130px; justify-content: center; }
+    .ai-actions, .ai-actions .sb-btn { width: 100%; }
+    .ai-actions .sb-btn { justify-content: center; }
     .answer-row-editable { flex-direction: column; }
     .answer-side { width: 100%; align-items: stretch; }
     .answer-score { text-align: left; }

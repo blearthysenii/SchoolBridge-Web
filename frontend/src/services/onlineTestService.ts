@@ -1,61 +1,31 @@
 import api from "./api";
 
 export const getTestSessionByCode = async (sessionCode: string) => {
-  const token = localStorage.getItem("token");
-
-  return await api.get(`/test-sessions/${sessionCode}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  return await api.get(`/test-sessions/${sessionCode}`);
 };
 
 export const startTestSession = async (sessionId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.post(`/test-sessions/${sessionId}/start`, null, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  return await api.post(`/test-sessions/${sessionId}/start`, null);
 };
 
 export const pauseTestSession = async (sessionId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.post(`/test-sessions/${sessionId}/pause`, null, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  return await api.post(`/test-sessions/${sessionId}/pause`, null);
 };
 
 export const resumeTestSession = async (sessionId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.post(`/test-sessions/${sessionId}/resume`, null, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  return await api.post(`/test-sessions/${sessionId}/resume`, null);
 };
 
 export const endTestSession = async (sessionId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.post(`/test-sessions/${sessionId}/end`, null, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  return await api.post(`/test-sessions/${sessionId}/end`, null);
 };
 
 export const getTestSessionResults = async (sessionId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.get(`/test-sessions/${sessionId}/results`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  return await api.get(`/test-sessions/${sessionId}/results`);
 };
 
 export const getTestSessionAnalytics = async (sessionId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.get(`/test-sessions/${sessionId}/analytics`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  return await api.get(`/test-sessions/${sessionId}/analytics`);
 };
 
 export const updateStudentAnswerOverride = async (
@@ -67,36 +37,27 @@ export const updateStudentAnswerOverride = async (
     is_correct?: boolean | null;
   },
 ) => {
-  const token = localStorage.getItem("token");
-
-  return await api.put(`/test-sessions/${sessionId}/answers/${answerId}`, payload, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  return await api.put(`/test-sessions/${sessionId}/answers/${answerId}`, payload);
 };
 
 export const getSessionAiAnalysis = async (sessionId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.get(`/test-sessions/${sessionId}/ai-analysis`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  return await api.get(`/test-sessions/${sessionId}/ai-analysis`);
 };
 
 export const generateSessionAiAnalysis = async (sessionId: number, force = false) => {
-  const token = localStorage.getItem("token");
-
   return await api.post(`/test-sessions/${sessionId}/ai-analysis`, null, {
     params: { force },
-    headers: { Authorization: `Bearer ${token}` },
+  });
+};
+
+export const downloadSessionAiAnalysisPdf = async (sessionId: number) => {
+  return await api.get(`/test-sessions/${sessionId}/ai-analysis/pdf`, {
+    responseType: "blob",
   });
 };
 
 export const deleteSessionAiAnalysis = async (sessionId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.delete(`/test-sessions/${sessionId}/ai-analysis`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  return await api.delete(`/test-sessions/${sessionId}/ai-analysis`);
 };
 
 export const joinOnlineTest = async (sessionCode: string, studentCode: string) => {
@@ -119,4 +80,15 @@ export const submitOnlineAttempt = async (
   }>,
 ) => {
   return await api.post(`/online-tests/attempt/${attemptId}/submit`, { answers });
+};
+
+export const saveOnlineAttemptAnswer = async (
+  attemptId: number,
+  answer: {
+    question_id: number;
+    selected_option_id?: number | null;
+    written_answer?: string | null;
+  },
+) => {
+  return await api.patch(`/online-tests/attempt/${attemptId}/answers`, answer);
 };

@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Clock, PauseCircle, Send } from "lucide-react";
+import { getErrorMessage } from "../services/errors";
 
 import {
   getOnlineAttempt,
   joinOnlineTest,
+  saveOnlineAttemptAnswer,
   submitOnlineAttempt,
 } from "../services/onlineTestService";
 import logoUrl from "../images/logo.png";
@@ -17,6 +19,11 @@ type PublicQuestion = {
   points: number;
   options: PublicOption[];
 };
+type PublicSavedAnswer = {
+  question_id: number;
+  selected_option_id?: number | null;
+  written_answer?: string | null;
+};
 type PublicAttempt = {
   attempt_id: number;
   session_code: string;
@@ -24,9 +31,19 @@ type PublicAttempt = {
   attempt_status: "joined" | "in_progress" | "submitted";
   test_title: string;
   questions: PublicQuestion[];
+  saved_answers: PublicSavedAnswer[];
 };
 
-type AnswerState = Record<number, { selected_option_id?: number | null; written_answer?: string }>;
+type AnswerState = Record<number, { selected_option_id?: number | null; written_answer?: string | null }>;
+
+const savedAnswersToState = (savedAnswers: PublicSavedAnswer[] = []) =>
+  savedAnswers.reduce<AnswerState>((acc, answer) => {
+    acc[answer.question_id] = {
+      selected_option_id: answer.selected_option_id ?? null,
+      written_answer: answer.written_answer ?? "",
+    };
+    return acc;
+  }, {});
 
 function OnlineTest() {
   const { sessionCode } = useParams();
@@ -41,6 +58,7 @@ function OnlineTest() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const autosaveTimers = useRef<Record<number, number>>({});
 
   const answeredCount = useMemo(() => {
     if (!attempt) return 0;
@@ -67,6 +85,39 @@ function OnlineTest() {
     return () => window.clearInterval(interval);
   }, [attempt, success]);
 
+  useEffect(() => {
+    const timers = autosaveTimers.current;
+    return () => {
+      Object.values(timers).forEach((timer) => window.clearTimeout(timer));
+    };
+  }, []);
+
+  const saveDraftAnswer = useCallback((
+    questionId: number,
+    answer: { selected_option_id?: number | null; written_answer?: string | null },
+    delay = 0,
+  ) => {
+    if (!attempt || success || attempt.attempt_status === "submitted") return;
+
+    if (autosaveTimers.current[questionId]) {
+      window.clearTimeout(autosaveTimers.current[questionId]);
+    }
+
+    const persist = async () => {
+      try {
+        await saveOnlineAttemptAnswer(attempt.attempt_id, {
+          question_id: questionId,
+          selected_option_id: answer.selected_option_id ?? null,
+          written_answer: answer.written_answer ?? null,
+        });
+      } catch {
+        setError("Dështoi ruajtja automatike e përgjigjes.");
+      }
+    };
+
+    autosaveTimers.current[questionId] = window.setTimeout(persist, delay);
+  }, [attempt, success]);
+
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -74,8 +125,9 @@ function OnlineTest() {
     try {
       const response = await joinOnlineTest(sessionInput.trim().toUpperCase(), studentCode.trim());
       setAttempt(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Kodi i seancës ose kodi i nxënësit nuk është i saktë.");
+      setAnswers(savedAnswersToState(response.data.saved_answers));
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Kodi i seancës ose kodi i nxënësit nuk është i saktë."));
     } finally {
       setLoading(false);
     }
@@ -92,6 +144,7 @@ function OnlineTest() {
 
     setSubmitting(true);
     try {
+      Object.values(autosaveTimers.current).forEach((timer) => window.clearTimeout(timer));
       const payload = attempt.questions.map((question) => ({
         question_id: question.id,
         selected_option_id: answers[question.id]?.selected_option_id ?? null,
@@ -100,25 +153,29 @@ function OnlineTest() {
       await submitOnlineAttempt(attempt.attempt_id, payload);
       setSuccess(true);
       setAttempt({ ...attempt, attempt_status: "submitted", questions: [] });
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Dështoi dorëzimi i testit.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Dështoi dorëzimi i testit."));
     } finally {
       setSubmitting(false);
     }
   };
 
   const setOptionAnswer = (questionId: number, optionId: number) => {
+    const answer = { selected_option_id: optionId, written_answer: null };
     setAnswers((prev) => ({
       ...prev,
-      [questionId]: { selected_option_id: optionId },
+      [questionId]: answer,
     }));
+    saveDraftAnswer(questionId, answer);
   };
 
   const setWrittenAnswer = (questionId: number, value: string) => {
+    const answer = { selected_option_id: null, written_answer: value };
     setAnswers((prev) => ({
       ...prev,
-      [questionId]: { written_answer: value },
+      [questionId]: answer,
     }));
+    saveDraftAnswer(questionId, answer, 650);
   };
 
   const renderStatusScreen = () => {
@@ -138,7 +195,7 @@ function OnlineTest() {
         <div className="public-card center">
           <div className="status-icon"><Clock size={34} /></div>
           <h1>Në pritje</h1>
-          <p>Testi do të hapet kur mësuesi të klikojë Start.</p>
+          <p>Testi do të hapet kur mësuesi të klikojë Nis.</p>
         </div>
       );
     }
@@ -177,7 +234,7 @@ function OnlineTest() {
 
         {!attempt ? (
           <form className="public-card join-card" onSubmit={handleJoin}>
-            <h1>Hyr në testin online</h1>
+            <h1>Hyr në testin në internet</h1>
             <div className="public-field">
               <label>Kodi i seancës</label>
               <input
