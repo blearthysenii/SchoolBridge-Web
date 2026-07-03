@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getErrorMessage } from "../services/errors";
 
 import api from "../services/api";
+import { clearAuthSession } from "../services/auth";
 import Layout from "../components/Layout";
 import Alert from "../components/Alert";
 import EmptyState from "../components/EmptyState";
@@ -58,12 +60,11 @@ export default function InactiveConcepts() {
   useEffect(() => {
     const init = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await api.get("/users/me", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get("/users/me");
         setUser(res.data);
         await load();
       } catch {
-        localStorage.removeItem("token");
+        clearAuthSession();
         navigate("/login");
       }
     };
@@ -83,9 +84,9 @@ export default function InactiveConcepts() {
     try {
       await restoreConcept(c.id);
       setConcepts((prev) => prev.filter((x) => x.id !== c.id));
-      setBanner({ type: "success", text: `Koncepti "${c.name}" u riaktivizua me sukses.` });
-    } catch (err: any) {
-      setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi riaktivizimi." });
+      setBanner({ type: "success", text: `Tema "${c.name}" u riaktivizua me sukses.` });
+    } catch (err: unknown) {
+      setBanner({ type: "error", text: getErrorMessage(err, "Dështoi riaktivizimi.") });
     } finally {
       setRestoringId(null);
       setPendingConcept(null);
@@ -93,22 +94,22 @@ export default function InactiveConcepts() {
   };
 
   return (
-    <Layout title="Konceptet joaktive" subtitle="Konceptet e çaktivizuara nga lëndët tuaja" backTo="/dashboard" user={user}>
+    <Layout title="Temat joaktive" subtitle="Temat e çaktivizuara nga lëndët tuaja" backTo="/dashboard" user={user}>
       {banner && <Alert type={banner.type} message={banner.text} onClose={() => setBanner(null)} />}
 
       {loading ? (
-        <LoadingSpinner text="Duke ngarkuar konceptet joaktive…" />
+        <LoadingSpinner text="Duke ngarkuar temat joaktive…" />
       ) : concepts.length === 0 ? (
         <EmptyState
-          title="Nuk ka koncepte joaktive"
-          description="Konceptet e çaktivizuara nga lëndët tuaja do të shfaqen këtu."
+          title="Nuk ka tema joaktive"
+          description="Temat e çaktivizuara nga lëndët tuaja do të shfaqen këtu."
         />
       ) : (
         <div className="sb-table-wrap">
           <table className="sb-table">
             <thead>
               <tr>
-                <th>Emri i konceptit</th>
+                <th>Emri i temës</th>
                 <th>Lënda</th>
                 <th></th>
               </tr>
@@ -137,8 +138,8 @@ export default function InactiveConcepts() {
 
       {pendingConcept && (
         <ConfirmDialog
-          title="Riaktivizo konceptin"
-          message={`Të riaktivizohet koncepti "${pendingConcept.name}"?`}
+          title="Riaktivizo temën"
+          message={`Të riaktivizohet tema "${pendingConcept.name}"?`}
           confirmLabel="Riaktivizo"
           submitting={restoringId === pendingConcept.id}
           onCancel={() => setPendingConcept(null)}

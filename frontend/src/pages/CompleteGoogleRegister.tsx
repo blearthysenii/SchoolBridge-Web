@@ -2,14 +2,16 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import tableImg from "../images/table.png";
-import { useToast } from "../components/ToastProvider";
+import { useToast } from "../components/toastContext";
+import { clearPendingGoogleRegistration, getPendingGoogleRegistration, setAuthToken } from "../services/auth";
 
 function CompleteGoogleRegister() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const pendingGoogle = getPendingGoogleRegistration();
 
   const [fullName, setFullName] = useState(
-    localStorage.getItem("google_name") || ""
+    pendingGoogle.fullName || ""
   );
 
   const [dateBirth, setDateBirth] = useState("");
@@ -23,7 +25,11 @@ function CompleteGoogleRegister() {
   useEffect(() => {
     const meta = document.querySelector("meta[name='viewport']");
     if (meta) meta.setAttribute("content", "width=device-width, initial-scale=1");
-  }, []);
+
+    if (!pendingGoogle.email) {
+      navigate("/login", { replace: true });
+    }
+  }, [navigate, pendingGoogle.email]);
 
   const handleCompleteRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,20 +55,19 @@ function CompleteGoogleRegister() {
     }
 
     try {
-      const email = localStorage.getItem("google_email");
+      const pending = getPendingGoogleRegistration();
 
       const response = await api.post("/users/google-complete-register", {
         full_name: fullName,
-        email,
+        email: pending.email,
         date_birth: dateBirth,
         role,
         password,
+        remember_me: pending.rememberMe,
       });
 
-      localStorage.setItem("token", response.data.access_token);
-
-      localStorage.removeItem("google_email");
-      localStorage.removeItem("google_name");
+      setAuthToken(response.data.access_token, pending.rememberMe);
+      clearPendingGoogleRegistration();
 
       navigate("/dashboard");
     } catch (error) {

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getErrorMessage } from "../services/errors";
 
 import api from "../services/api";
+import { clearAuthSession } from "../services/auth";
 import Layout from "../components/Layout";
 import Alert from "../components/Alert";
 import EmptyState from "../components/EmptyState";
@@ -63,12 +65,11 @@ export default function InactiveClassrooms() {
   useEffect(() => {
     const init = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await api.get("/users/me", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get("/users/me");
         setUser(res.data);
         await load();
       } catch {
-        localStorage.removeItem("token");
+        clearAuthSession();
         navigate("/login");
       }
     };
@@ -87,8 +88,8 @@ export default function InactiveClassrooms() {
       await activateClassroom(classroom.id);
       setClassrooms((prev) => prev.filter((c) => c.id !== classroom.id));
       setBanner({ type: "success", text: `Klasa "${classroom.name}" u aktivizua prapë.` });
-    } catch (err: any) {
-      setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi aktivizimi i klasës." });
+    } catch (err: unknown) {
+      setBanner({ type: "error", text: getErrorMessage(err, "Dështoi aktivizimi i klasës.") });
     } finally {
       setRestoringId(null);
       setPendingClassroom(null);

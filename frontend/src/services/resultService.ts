@@ -1,13 +1,7 @@
 import api from "./api";
 
 export const getResultsByStudent = async (studentId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.get(`/results/student/${studentId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  return await api.get(`/results/student/${studentId}`);
 };
 
 export const createResult = async (
@@ -15,8 +9,6 @@ export const createResult = async (
   questionId: number,
   isCorrect: boolean
 ) => {
-  const token = localStorage.getItem("token");
-
   return await api.post(
     "/results/",
     {
@@ -24,22 +16,11 @@ export const createResult = async (
       question_id: questionId,
       is_correct: isCorrect,
     },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
   );
 };
 
 export const deleteResult = async (resultId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.delete(`/results/${resultId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  return await api.delete(`/results/${resultId}`);
 };
 
 export const submitBatchResults = async (
@@ -47,8 +28,6 @@ export const submitBatchResults = async (
   testId: number,
   answers: { question_id: number; is_correct: boolean }[]
 ) => {
-  const token = localStorage.getItem("token");
-
   return await api.post(
     "/results/batch",
     {
@@ -56,10 +35,5 @@ export const submitBatchResults = async (
       test_id: testId,
       answers,
     },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
   );
 };

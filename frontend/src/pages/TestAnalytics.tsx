@@ -57,6 +57,22 @@ type TestAnalyticsData = {
   strongest_concepts: ConceptStat[];
 };
 
+type ChartTooltipItem = {
+  value?: number;
+  payload?: {
+    full_name?: string;
+    question_text?: string;
+    concept_name?: string;
+  };
+};
+
+type ChartTooltipProps = {
+  active?: boolean;
+  payload?: ChartTooltipItem[];
+  label?: string | number;
+  extra?: boolean;
+};
+
 // ── Color helpers ─────────────────────────────────────────────────────────────
 function rateColor(r: number) {
   return r >= 80 ? "#22c55e" : r >= 60 ? "#f59e0b" : "#ef4444";
@@ -117,10 +133,10 @@ function RateBar({ rate }: { rate: number }) {
 }
 
 // ── Custom tooltip ────────────────────────────────────────────────────────────
-function ChartTooltip({ active, payload, label, extra }: any) {
+function ChartTooltip({ active, payload, label, extra }: ChartTooltipProps) {
   if (!active || !payload?.length) return null;
-  const val = payload[0].value;
-  const item = payload[0].payload;
+  const val = Number(payload[0].value ?? 0);
+  const item = payload[0].payload ?? {};
   return (
     <div style={{
       background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8,
@@ -129,7 +145,7 @@ function ChartTooltip({ active, payload, label, extra }: any) {
     }}>
       <div style={{ fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{item.full_name ?? label}</div>
       {item.question_text && <div style={{ color: "#64748b", marginBottom: 6 }}>{item.question_text}</div>}
-      {item.concept_name && extra && <div style={{ color: "#94a3b8", fontSize: 11, marginBottom: 4 }}>Koncepti: {item.concept_name}</div>}
+      {item.concept_name && extra && <div style={{ color: "#94a3b8", fontSize: 11, marginBottom: 4 }}>Tema: {item.concept_name}</div>}
       <div style={{ color: rateColor(val), fontWeight: 700 }}>{val}% sukses</div>
     </div>
   );
@@ -164,11 +180,26 @@ function TestAnalytics() {
 
   useEffect(() => {
     if (!id || isNaN(Number(id))) return;
-    setLoading(true);
-    getTestAnalytics(Number(id))
-      .then((res) => setAnalytics(res.data))
-      .catch(() => setError("Dështoi ngarkimi i analitikës."))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      getTestAnalytics(Number(id))
+        .then((res) => {
+          if (!cancelled) setAnalytics(res.data);
+        })
+        .catch(() => {
+          if (!cancelled) setError("Dështoi ngarkimi i analitikës.");
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (loading) return (
@@ -216,7 +247,7 @@ function TestAnalytics() {
   const tabs = [
     { key: "ranking" as const, label: "Renditja", count: analytics.student_ranking.length },
     { key: "questions" as const, label: "Pyetjet", count: analytics.question_stats.length },
-    { key: "concepts" as const, label: "Konceptet", count: analytics.concept_stats.length },
+    { key: "concepts" as const, label: "Temat", count: analytics.concept_stats.length },
     { key: "insights" as const, label: "Konkluzione", count: analytics.weakest_concepts.length + analytics.strongest_concepts.length },
   ];
 
@@ -372,7 +403,7 @@ function TestAnalytics() {
                     <tr>
                       <th>Nr.</th>
                       <th>Pyetja</th>
-                      <th className="hide-mobile">Koncepti</th>
+                      <th className="hide-mobile">Tema</th>
                       <th className="rate-col">Suksesi</th>
                     </tr>
                   </thead>
@@ -404,8 +435,8 @@ function TestAnalytics() {
         {activeTab === "concepts" && (
           <>
             <div className="section-hdr">
-              <div className="section-hdr-title">Performanca sipas koncepteve</div>
-              <div className="section-hdr-sub">{analytics.concept_stats.length} koncepte të testuara</div>
+              <div className="section-hdr-title">Performanca sipas temave</div>
+              <div className="section-hdr-sub">{analytics.concept_stats.length} tema të testuara</div>
             </div>
 
             {conceptChartData.length > 0 ? (
@@ -442,8 +473,8 @@ function TestAnalytics() {
               </>
             ) : (
               <div className="empty-state">
-                <strong>Nuk ka të dhëna konceptesh</strong>
-                Dorëzoni rezultate për të parë performancën sipas koncepteve.
+                <strong>Nuk ka të dhëna për tema</strong>
+                Dorëzoni rezultate për të parë performancën sipas temave.
               </div>
             )}
           </>
@@ -454,7 +485,7 @@ function TestAnalytics() {
           <>
             {/* WEAKEST */}
             <div className="section-hdr" style={{ marginTop: 0 }}>
-              <div className="section-hdr-title">Konceptet më të dobëta</div>
+              <div className="section-hdr-title">Temat më të dobëta</div>
               <div className="section-hdr-sub">Ku klasa ka nevojë për mbështetje</div>
             </div>
 
@@ -474,12 +505,12 @@ function TestAnalytics() {
                 ))}
               </div>
             ) : (
-              <div className="empty-gaps" style={{ marginBottom: 24 }}>Nuk ka koncepte shumë të dobëta.</div>
+              <div className="empty-gaps" style={{ marginBottom: 24 }}>Nuk ka tema shumë të dobëta.</div>
             )}
 
             {/* STRONGEST */}
             <div className="section-hdr">
-              <div className="section-hdr-title">Konceptet më të forta</div>
+              <div className="section-hdr-title">Temat më të forta</div>
               <div className="section-hdr-sub">Ku klasa performon mirë</div>
             </div>
 
@@ -510,7 +541,7 @@ function TestAnalytics() {
             ) : (
               <div className="empty-state">
                 <strong>Nuk ka të dhëna</strong>
-                Dorëzoni rezultate për të parë konceptet më të forta.
+                Dorëzoni rezultate për të parë temat më të forta.
               </div>
             )}
           </>

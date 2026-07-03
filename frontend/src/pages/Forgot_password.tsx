@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import tableImg from "../images/table.png";
+import { getErrorMessage } from "../services/errors";
 
 function ForgotPassword() {
   const navigate = useNavigate();
@@ -23,12 +24,12 @@ function ForgotPassword() {
     setLoading(true);
     try {
       const response = await api.post("/users/forgot-password", { email });
-      setMessage(response.data.message || "Kodi per rivendosjen e fjalekalimit u dergua ne email.");
+      setMessage(response.data.message || "Kodi për rivendosjen e fjalëkalimit u dërgua në adresën e emailit.");
       setTimeout(() => {
         navigate("/reset-password", { state: { email } });
       }, 1200);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Ndodhi nje gabim. Ju lutem provoni perseri.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Ndodhi një gabim. Ju lutemi provoni përsëri."));
     } finally {
       setLoading(false);
     }
@@ -370,7 +371,7 @@ function ForgotPassword() {
                   {message && <div className="sb-msg success">{message}</div>}
 
                   <p className="sb-card-title">
-                    Shkruani email-in tuaj dhe do t'ju dërgojmë<br />
+                    Shkruani adresën tuaj të emailit dhe do t'ju dërgojmë<br />
                     kodin për rivendosjen e fjalëkalimit.
                   </p>
 
@@ -379,7 +380,7 @@ function ForgotPassword() {
                       <input
                         className="sb-input"
                         type="email"
-                        placeholder="Email adresa"
+                        placeholder="Adresa e emailit"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required

@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
+import { getErrorMessage } from "../services/errors";
 
 import api from "../services/api";
+import { clearAuthSession } from "../services/auth";
 import Layout from "../components/Layout";
 import Alert from "../components/Alert";
 import EmptyState from "../components/EmptyState";
@@ -289,50 +291,49 @@ function ClassroomDetails() {
   // ── Loaders ──
   // Pamjet aktive nuk duhet të shfaqin rekorde të çaktivizuara/arkivuara,
   // edhe nëse përgjigja nga backend-i i përfshin.
-  const loadStudents = async () => {
+  const loadStudents = useCallback(async () => {
     if (!id) return;
     const r = await getStudentsByClassroom(id);
     setStudents(r.data.filter((s: Student) => s.is_active !== false));
-  };
-  const loadSubjects = async () => {
+  }, [id]);
+  const loadSubjects = useCallback(async () => {
     if (!id) return;
     const r = await getSubjectsByClassroom(id);
     setSubjects(r.data.filter((s: Subject) => s.is_active !== false));
-  };
-  const loadConcepts = async (subjectId: number) => {
+  }, [id]);
+  const loadConcepts = useCallback(async (subjectId: number) => {
     const r = await getConceptsBySubject(subjectId);
     setConcepts(r.data.filter((c: Concept) => c.is_active !== false));
-  };
-  const loadTests = async () => {
+  }, []);
+  const loadTests = useCallback(async () => {
     if (!id) return;
     const r = await getTestsByClassroom(Number(id));
     setTests(r.data.filter((t: Test) => t.status !== "archived"));
-  };
-  const loadClassroom = async () => {
+  }, [id]);
+  const loadClassroom = useCallback(async () => {
     const r = await getClassrooms();
     const found = r.data.find((c: Classroom) => c.id === Number(id));
     setClassroom(found ?? null);
-  };
-  const refreshData = async () => {
+  }, [id]);
+  const refreshData = useCallback(async () => {
     await Promise.all([loadClassroom(), loadStudents(), loadSubjects(), loadTests()]);
-  };
+  }, [loadClassroom, loadStudents, loadSubjects, loadTests]);
 
   useEffect(() => {
     const init = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await api.get("/users/me", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get("/users/me");
         setUser(res.data);
         await refreshData();
       } catch {
-        localStorage.removeItem("token");
+        clearAuthSession();
         navigate("/login");
       } finally {
         setLoading(false);
       }
     };
     init();
-  }, [id, navigate]);
+  }, [navigate, refreshData]);
 
   useEffect(() => {
     if (!banner) return;
@@ -340,7 +341,7 @@ function ClassroomDetails() {
     return () => clearTimeout(t);
   }, [banner]);
 
-  const openModal = (type: ModalType) => {
+  const openModal = useCallback((type: ModalType) => {
     setFormError("");
     if (type !== "editStudent" && type !== "editSubject" && type !== "editConcept") {
       setEditingId(null);
@@ -356,7 +357,7 @@ function ClassroomDetails() {
     if (type === "concept") setConceptName("");
     if (type === "test") { setTestTitle(""); setSelectedTestSubjectId(""); }
     setActiveModal(type);
-  };
+  }, []);
   const closeModal = () => {
     setActiveModal(null);
     setFormError("");
@@ -373,23 +374,27 @@ function ClassroomDetails() {
 
     if (quickActionHandledRef.current === key) return;
 
-    if (tab === "students" || tab === "subjects" || tab === "concepts" || tab === "tests") {
-      setActiveTab(tab);
-      quickActionHandledRef.current = key;
-    }
+    queueMicrotask(() => {
+      if (quickActionHandledRef.current === key) return;
 
-    if (action === "new-student") {
-      setActiveTab("students");
-      openModal("student");
-      quickActionHandledRef.current = key;
-    }
+      if (tab === "students" || tab === "subjects" || tab === "concepts" || tab === "tests") {
+        setActiveTab(tab);
+        quickActionHandledRef.current = key;
+      }
 
-    if (action === "new-test") {
-      setActiveTab("tests");
-      openModal("test");
-      quickActionHandledRef.current = key;
-    }
-  }, [id, loading, location.search]);
+      if (action === "new-student") {
+        setActiveTab("students");
+        openModal("student");
+        quickActionHandledRef.current = key;
+      }
+
+      if (action === "new-test") {
+        setActiveTab("tests");
+        openModal("test");
+        quickActionHandledRef.current = key;
+      }
+    });
+  }, [id, loading, location.search, openModal]);
 
   const openEditStudent = (s: Student) => {
     setEditingId(s.id);
@@ -423,8 +428,8 @@ function ClassroomDetails() {
       setFullName(""); setPersonalNumber(""); setParentPhone(""); setFinalGrade(""); setDateBirth("");
       await loadStudents();
       closeModal();
-    } catch (err: any) {
-      setFormError(err.response?.data?.detail || "Dështoi shtimi i nxënësit.");
+    } catch (err: unknown) {
+      setFormError(getErrorMessage(err, "Dështoi shtimi i nxënësit."));
     } finally { setSubmitting(false); }
   };
 
@@ -437,8 +442,8 @@ function ClassroomDetails() {
       setSubjectName("");
       await loadSubjects();
       closeModal();
-    } catch (err: any) {
-      setFormError(err.response?.data?.detail || "Dështoi shtimi i lëndës.");
+    } catch (err: unknown) {
+      setFormError(getErrorMessage(err, "Dështoi shtimi i lëndës."));
     } finally { setSubmitting(false); }
   };
 
@@ -458,8 +463,8 @@ function ClassroomDetails() {
       setConceptName("");
       await loadConcepts(Number(selectedSubjectId));
       closeModal();
-    } catch (err: any) {
-      setFormError(err.response?.data?.detail || "Dështoi shtimi i konceptit.");
+    } catch (err: unknown) {
+      setFormError(getErrorMessage(err, "Dështoi shtimi i temës."));
     } finally { setSubmitting(false); }
   };
 
@@ -472,8 +477,8 @@ function ClassroomDetails() {
       setTestTitle(""); setSelectedTestSubjectId("");
       await loadTests();
       closeModal();
-    } catch (err: any) {
-      setFormError(err.response?.data?.detail || "Dështoi krijimi i testit.");
+    } catch (err: unknown) {
+      setFormError(getErrorMessage(err, "Dështoi krijimi i testit."));
     } finally { setSubmitting(false); }
   };
 
@@ -493,8 +498,8 @@ function ClassroomDetails() {
       await loadStudents();
       closeModal();
       setBanner({ type: "success", text: "Nxënësi u përditësua me sukses." });
-    } catch (err: any) {
-      setFormError(err.response?.data?.detail || "Dështoi përditësimi i nxënësit.");
+    } catch (err: unknown) {
+      setFormError(getErrorMessage(err, "Dështoi përditësimi i nxënësit."));
     } finally { setSubmitting(false); }
   };
 
@@ -504,7 +509,7 @@ function ClassroomDetails() {
       await deactivateStudent(studentId);
       await loadStudents();
       setBanner({ type: "info", text: "Nxënësi u bë joaktiv. Mund ta riaktivizoni nga skeda e nxënësve joaktivë." });
-    } catch (err: any) { setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi çaktivizimi." }); }
+    } catch (err: unknown) { setBanner({ type: "error", text: getErrorMessage(err, "Dështoi çaktivizimi.") }); }
     finally { setDeletingId(null); }
   };
 
@@ -518,8 +523,8 @@ function ClassroomDetails() {
       await loadSubjects();
       closeModal();
       setBanner({ type: "success", text: "Lënda u riemërua me sukses." });
-    } catch (err: any) {
-      setFormError(err.response?.data?.detail || "Dështoi riemërimi i lëndës.");
+    } catch (err: unknown) {
+      setFormError(getErrorMessage(err, "Dështoi riemërimi i lëndës."));
     } finally { setSubmitting(false); }
   };
 
@@ -531,7 +536,7 @@ function ClassroomDetails() {
       if (selectedSubjectId === subjectId) { setSelectedSubjectId(""); setConcepts([]); }
       const softDeleted = res.data?.message?.includes("joaktive");
       setBanner({ type: softDeleted ? "info" : "success", text: res.data?.message || "Lënda u fshi me sukses." });
-    } catch (err: any) { setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi fshirja." }); }
+    } catch (err: unknown) { setBanner({ type: "error", text: getErrorMessage(err, "Dështoi fshirja.") }); }
     finally { setDeletingId(null); }
   };
 
@@ -544,9 +549,9 @@ function ClassroomDetails() {
       setConceptName("");
       if (selectedSubjectId) await loadConcepts(Number(selectedSubjectId));
       closeModal();
-      setBanner({ type: "success", text: "Koncepti u riemërua me sukses." });
-    } catch (err: any) {
-      setFormError(err.response?.data?.detail || "Dështoi riemërimi i konceptit.");
+      setBanner({ type: "success", text: "Tema u riemërua me sukses." });
+    } catch (err: unknown) {
+      setFormError(getErrorMessage(err, "Dështoi riemërimi i temës."));
     } finally { setSubmitting(false); }
   };
 
@@ -556,8 +561,8 @@ function ClassroomDetails() {
       const res = await deleteConcept(conceptId);
       if (selectedSubjectId) await loadConcepts(Number(selectedSubjectId));
       const softDeleted = res.data?.message?.includes("joaktiv");
-      setBanner({ type: softDeleted ? "info" : "success", text: res.data?.message || "Koncepti u fshi me sukses." });
-    } catch (err: any) { setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi fshirja." }); }
+      setBanner({ type: softDeleted ? "info" : "success", text: res.data?.message || "Tema u çaktivizua me sukses." });
+    } catch (err: unknown) { setBanner({ type: "error", text: getErrorMessage(err, "Dështoi fshirja.") }); }
     finally { setDeletingId(null); }
   };
 
@@ -568,7 +573,7 @@ function ClassroomDetails() {
       await loadTests();
       const archived = res.data?.message?.includes("arkivua");
       setBanner({ type: archived ? "info" : "success", text: res.data?.message || "Testi u fshi me sukses." });
-    } catch (err: any) { setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi fshirja." }); }
+    } catch (err: unknown) { setBanner({ type: "error", text: getErrorMessage(err, "Dështoi fshirja.") }); }
     finally { setDeletingId(null); }
   };
 
@@ -585,7 +590,7 @@ function ClassroomDetails() {
   const tabs: { key: typeof activeTab; label: string; count: number }[] = [
     { key: "students", label: "Nxënësit", count: students.length },
     { key: "subjects", label: "Lëndët", count: subjects.length },
-    { key: "concepts", label: "Konceptet", count: concepts.length },
+    { key: "concepts", label: "Temat", count: concepts.length },
     { key: "tests", label: "Testet", count: tests.length },
   ];
 
@@ -594,7 +599,7 @@ function ClassroomDetails() {
       title={classroom ? classroom.name : "Detajet e klasës"}
       subtitle={
         classroom
-          ? `Viti ${classroom.grade}${formatClassroomPeriod(classroom) ? ` · ${formatClassroomPeriod(classroom)}` : ""} · Menaxhoni nxënësit, lëndët, konceptet dhe testet`
+          ? `Viti ${classroom.grade}${formatClassroomPeriod(classroom) ? ` · ${formatClassroomPeriod(classroom)}` : ""} · Menaxhoni nxënësit, lëndët, temat dhe testet`
           : undefined
       }
       backTo="/dashboard"
@@ -741,10 +746,10 @@ function ClassroomDetails() {
             <>
               <SectionHeader
                 icon={<IconConcept />}
-                title="Konceptet"
+                title="Temat"
                 count={concepts.length}
                 onAdd={() => openModal("concept")}
-                addLabel="Shto koncept"
+                addLabel="Shto temë"
               />
               <div className="sb-card sb-filter-row">
                 <label>Filtro sipas lëndës:</label>
@@ -762,13 +767,13 @@ function ClassroomDetails() {
               </div>
 
               {!selectedSubjectId ? (
-                <EmptyState title="Asgjë këtu ende" description="Zgjidhni një lëndë për të parë konceptet e saj." />
+                <EmptyState title="Asgjë këtu ende" description="Zgjidhni një lëndë për të parë temat e saj." />
               ) : concepts.length > 0 ? (
                 <div className="sb-table-wrap">
                   <table className="sb-table">
                     <thead>
                       <tr>
-                        <th>Emri i konceptit</th>
+                        <th>Emri i temës</th>
                         <th></th>
                       </tr>
                     </thead>
@@ -796,7 +801,7 @@ function ClassroomDetails() {
                   </table>
                 </div>
               ) : (
-                <EmptyState title="Asgjë këtu ende" description="Kjo lëndë nuk ka koncepte ende." />
+                <EmptyState title="Asgjë këtu ende" description="Kjo lëndë nuk ka tema ende." />
               )}
             </>
           )}
@@ -889,10 +894,10 @@ function ClassroomDetails() {
       )}
 
       {activeModal === "concept" && (
-        <Modal title="Shto koncept të ri" onClose={closeModal} onSubmit={handleCreateConcept} submitting={submitting} error={formError} submitLabel="Shto konceptin">
+        <Modal title="Shto temë të re" onClose={closeModal} onSubmit={handleCreateConcept} submitting={submitting} error={formError} submitLabel="Shto temën">
           {!selectedSubjectId && (
             <div className="sb-hint">
-              Zgjidhni fillimisht një lëndë në skedën "Konceptet" për të lidhur konceptin.
+              Zgjidhni fillimisht një lëndë në skedën "Temat" për të lidhur temën.
             </div>
           )}
           <div className="sb-form-group">
@@ -903,7 +908,7 @@ function ClassroomDetails() {
             </select>
           </div>
           <div className="sb-form-group">
-            <label className="sb-form-label">Emri i konceptit</label>
+            <label className="sb-form-label">Emri i temës</label>
             <input className="sb-form-input" type="text" placeholder="p.sh. Thyesat" value={conceptName} onChange={(e) => setConceptName(e.target.value)} required />
           </div>
         </Modal>
@@ -960,9 +965,9 @@ function ClassroomDetails() {
       )}
 
       {activeModal === "editConcept" && (
-        <Modal title="Ndrysho konceptin" onClose={closeModal} onSubmit={handleUpdateConcept} submitting={submitting} error={formError} submitLabel="Ruaj ndryshimet">
+        <Modal title="Ndrysho temën" onClose={closeModal} onSubmit={handleUpdateConcept} submitting={submitting} error={formError} submitLabel="Ruaj ndryshimet">
           <div className="sb-form-group">
-            <label className="sb-form-label">Emri i konceptit</label>
+            <label className="sb-form-label">Emri i temës</label>
             <input className="sb-form-input" type="text" placeholder="p.sh. Thyesat" value={conceptName} onChange={(e) => setConceptName(e.target.value)} required />
           </div>
         </Modal>
@@ -973,7 +978,7 @@ function ClassroomDetails() {
           title={
             pendingAction.kind === "deactivateStudent" ? "Çaktivizo nxënësin" :
             pendingAction.kind === "deleteTest" ? "Arkivo testin" :
-            pendingAction.kind === "deleteSubject" ? "Çaktivizo lëndën" : "Çaktivizo konceptin"
+            pendingAction.kind === "deleteSubject" ? "Çaktivizo lëndën" : "Çaktivizo temën"
           }
           message={
             pendingAction.kind === "deactivateStudent"

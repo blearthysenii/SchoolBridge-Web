@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 import logoUrl from "../images/logo.png";
+import { clearAuthSession } from "../services/auth";
 
 type UserType = {
   full_name: string;
@@ -41,7 +42,7 @@ const archiveNavItems: NavItem[] = [
   { label: "Klasat jo aktive", path: "/inactive-classrooms", icon: Archive },
   { label: "Nxënës joaktivë", path: "/inactive-students", icon: Users },
   { label: "Lëndë joaktive", path: "/inactive-subjects", icon: BookOpen },
-  { label: "Koncepte joaktive", path: "/inactive-concepts", icon: Layers },
+  { label: "Temat joaktive", path: "/inactive-concepts", icon: Layers },
   { label: "Teste të arkivuara", path: "/archived-tests", icon: FileText },
 ];
 
@@ -51,7 +52,7 @@ export default function Layout({ children, title, subtitle, backTo, backLabel, u
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    clearAuthSession();
     navigate("/login");
   };
 
@@ -307,7 +308,7 @@ export default function Layout({ children, title, subtitle, backTo, backLabel, u
         }
         .sb-topbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
-        .sb-page { flex: 1; padding: 0; max-width: 1360px; width: 100%; }
+        .sb-page { flex: 1; padding: 0; max-width: 1360px; width: 100%; min-width: 0; }
 
         .sb-card {
           background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.72); border-radius: 22px;
@@ -366,7 +367,7 @@ export default function Layout({ children, title, subtitle, backTo, backLabel, u
         }
         .sb-modal {
           background: rgba(255,255,255,0.86); border: 1px solid rgba(255,255,255,0.78);
-          border-radius: 24px; width: 100%; max-width: 420px; box-shadow: 0 24px 70px rgba(15,23,42,0.2); padding: 28px; backdrop-filter: blur(20px);
+          border-radius: 24px; width: 100%; max-width: 420px; max-height: calc(100svh - 32px); overflow-y: auto; box-shadow: 0 24px 70px rgba(15,23,42,0.2); padding: 28px; backdrop-filter: blur(20px);
         }
         .sb-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
         .sb-modal-title { font-size: 16px; font-weight: 800; color: #0F172A; }
@@ -428,7 +429,7 @@ export default function Layout({ children, title, subtitle, backTo, backLabel, u
           }
           .sb-sidebar.sb-sidebar-open { transform: translateX(0); opacity: 1; }
           .sb-sidebar-close { display: flex; align-items: center; justify-content: center; }
-          .sb-main { margin-left: 0; padding: 14px; }
+          .sb-main { margin-left: 0; padding: 14px; max-width: 100vw; overflow-x: hidden; }
           .sb-sidebar-overlay { display: block; }
           .sb-hamburger { display: flex; }
           .sb-topbar { top: 14px; min-height: 64px; border-radius: 22px; padding: 0 14px; }
@@ -440,12 +441,15 @@ export default function Layout({ children, title, subtitle, backTo, backLabel, u
           .sb-main { padding: 10px; }
           .sb-topbar { flex-wrap: wrap; height: auto; min-height: 58px; padding: 10px 12px; gap: 8px 10px; }
           .sb-topbar-title { font-size: 18px; }
-          .sb-topbar-titles { order: 1; flex: 1 1 auto; }
+          .sb-topbar-titles { order: 1; flex: 1 1 auto; min-width: 0; }
           .sb-back-btn span { display: none; }
           .sb-back-btn { padding: 8px; }
-          .sb-topbar-actions { order: 3; flex: 1 1 100%; }
-          .sb-topbar-actions .sb-btn { flex: 1; justify-content: center; }
-          .sb-modal { padding: 20px; border-radius: 22px; }
+          .sb-topbar-actions { order: 3; flex: 1 1 100%; min-width: 0; flex-wrap: wrap; }
+          .sb-topbar-actions .sb-btn { flex: 1 1 150px; justify-content: center; white-space: normal; text-align: center; }
+          .sb-modal-overlay { align-items: flex-start; overflow-y: auto; }
+          .sb-modal { padding: 20px; border-radius: 22px; max-width: calc(100vw - 20px); }
+          .sb-modal-actions { flex-direction: column-reverse; }
+          .sb-modal-actions .sb-btn { width: 100%; justify-content: center; }
           .sb-section-header { gap: 10px 12px; }
           .sb-section-header .sb-btn-primary { padding: 8px 12px; font-size: 12.5px; }
           .sb-filter-row { flex-wrap: wrap; align-items: stretch; }

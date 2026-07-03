@@ -1,47 +1,19 @@
 import api from "./api";
 
 export const getTestsByClassroom = async (classroomId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.get(`/tests/classroom/${classroomId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  return await api.get(`/tests/classroom/${classroomId}`);
 };
 
 export const getTestById = async (testId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.get(`/tests/${testId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  return await api.get(`/tests/${testId}`);
 };
 
 export const getArchivedTests = async () => {
-  const token = localStorage.getItem("token");
-
-  return await api.get("/tests/archived", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  return await api.get("/tests/archived");
 };
 
 export const updateTestStatus = async (testId: number, status: "draft" | "published" | "archived") => {
-  const token = localStorage.getItem("token");
-
-  return await api.put(
-    `/tests/${testId}/status`,
-    { status },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  );
+  return await api.put(`/tests/${testId}/status`, { status });
 };
 
 export const createTest = async (
@@ -49,8 +21,6 @@ export const createTest = async (
   classroomId: number,
   subjectId: number,
 ) => {
-  const token = localStorage.getItem("token");
-
   return await api.post(
     "/tests/",
     {
@@ -58,44 +28,17 @@ export const createTest = async (
       classroom_id: classroomId,
       subject_id: subjectId,
     },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
   );
 };
 
 export const deleteTest = async (testId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.delete(`/tests/${testId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  return await api.delete(`/tests/${testId}`);
 };
 
 export const createTestSession = async (testId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.post(
-    "/test-sessions/",
-    { test_id: testId },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  );
+  return await api.post("/test-sessions/", { test_id: testId });
 };
 
 export const getSessionsByTest = async (testId: number) => {
-  const token = localStorage.getItem("token");
-
-  return await api.get(`/test-sessions/test/${testId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  return await api.get(`/test-sessions/test/${testId}`);
 };

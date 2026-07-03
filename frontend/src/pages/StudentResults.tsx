@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { getErrorMessage } from "../services/errors";
 
 import ConfirmDialog from "../components/ConfirmDialog";
-import { useToast } from "../components/ToastProvider";
+import { useToast } from "../components/toastContext";
 
 import {
   createResult,
@@ -175,28 +176,36 @@ function StudentResults() {
   const [pendingDelete, setPendingDelete] = useState<Result | null>(null);
   const [activeTab, setActiveTab] = useState<"analytics" | "concepts" | "gaps" | "results">("analytics");
 
-  const loadResults = async () => {
+  const loadResults = useCallback(async () => {
     if (!id) return;
     const r = await getResultsByStudent(Number(id));
     setResults(r.data);
-  };
-  const loadQuestions = async () => {
+  }, [id]);
+  const loadQuestions = useCallback(async () => {
     if (!id) return;
     const r = await getQuestionsByStudent(Number(id));
     setQuestions(r.data);
-  };
-  const loadAnalytics = async () => {
+  }, [id]);
+  const loadAnalytics = useCallback(async () => {
     if (!id) return;
     const r = await getStudentAnalytics(Number(id));
     setAnalytics(r.data);
-  };
-  const refreshData = async () => {
+  }, [id]);
+  const refreshData = useCallback(async () => {
     await loadResults();
     await loadQuestions();
     await loadAnalytics();
-  };
+  }, [loadAnalytics, loadQuestions, loadResults]);
 
-  useEffect(() => { refreshData(); }, [id]);
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void refreshData();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshData]);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -214,8 +223,8 @@ function StudentResults() {
       setSelectedQuestionId(""); setIsCorrect("true");
       setModalOpen(false);
       await refreshData();
-    } catch (err: any) {
-      setFormError(err.response?.data?.detail || "Dështoi ruajtja e rezultatit.");
+    } catch (err: unknown) {
+      setFormError(getErrorMessage(err, "Dështoi ruajtja e rezultatit."));
     } finally { setSubmitting(false); }
   };
 
@@ -235,7 +244,7 @@ function StudentResults() {
 
   const tabs = [
     { key: "analytics" as const, label: "Vështrim i përgjithshëm" },
-    { key: "concepts" as const, label: "Konceptet", count: analytics?.concepts.length },
+    { key: "concepts" as const, label: "Temat", count: analytics?.concepts.length },
     { key: "gaps" as const, label: "Boshllëqet", count: analytics?.learning_gaps.length, warn: (analytics?.learning_gaps.length ?? 0) > 0 },
     { key: "results" as const, label: "Rezultatet", count: results.length },
   ];
@@ -648,7 +657,7 @@ function StudentResults() {
             <div className="section-hdr">
               <div>
                 <div className="section-hdr-title">Vështrim i përgjithshëm</div>
-                <div className="section-hdr-sub">Performanca e nxënësit sipas koncepteve</div>
+                <div className="section-hdr-sub">Performanca e nxënësit sipas temave</div>
               </div>
             </div>
             {analytics && analytics.concepts.length > 0 ? (
@@ -656,7 +665,7 @@ function StudentResults() {
               <table className="data-table analytics-table">
                 <thead>
                   <tr>
-                    <th>Lënda / Koncepti</th>
+                    <th>Lënda / Tema</th>
                     <th className="rate-col">Shkalla e suksesit</th>
                     <th className="hide-mobile">Korrekte</th>
                     <th className="hide-mobile">Gabim</th>
@@ -701,8 +710,8 @@ function StudentResults() {
           <>
             <div className="section-hdr">
               <div>
-                <div className="section-hdr-title">Performanca sipas koncepteve</div>
-                <div className="section-hdr-sub">{analytics?.concepts.length ?? 0} koncepte të vlerësuara</div>
+                <div className="section-hdr-title">Performanca sipas temave</div>
+                <div className="section-hdr-sub">{analytics?.concepts.length ?? 0} tema të vlerësuara</div>
               </div>
             </div>
             {analytics && analytics.concepts.length > 0 ? (
@@ -721,8 +730,8 @@ function StudentResults() {
               </div>
             ) : (
               <div className="empty-state">
-                <strong>Asnjë koncept i vlerësuar</strong>
-                Regjistroni përgjigje për të parë performancën sipas koncepteve.
+                <strong>Asnjë temë e vlerësuar</strong>
+                Regjistroni përgjigje për të parë performancën sipas temave.
               </div>
             )}
           </>
@@ -734,7 +743,7 @@ function StudentResults() {
             <div className="section-hdr">
               <div>
                 <div className="section-hdr-title">Boshllëqet në mësim</div>
-                <div className="section-hdr-sub">Koncepte ku nxënësi ka nevojë për mbështetje</div>
+                <div className="section-hdr-sub">Tema ku nxënësi ka nevojë për mbështetje</div>
               </div>
             </div>
             {analytics && analytics.learning_gaps.length > 0 ? (
@@ -757,7 +766,7 @@ function StudentResults() {
               </div>
             ) : (
               <div className="empty-gaps">
-                Asnjë boshllëk i zbuluar — nxënësi po performon mirë në të gjitha konceptet.
+                Asnjë boshllëk i zbuluar — nxënësi po performon mirë në të gjitha temat.
               </div>
             )}
           </>
@@ -778,7 +787,7 @@ function StudentResults() {
                 <thead>
                   <tr>
                     <th>Pyetja</th>
-                    <th className="hide-mobile">Lënda / Koncepti</th>
+                    <th className="hide-mobile">Lënda / Tema</th>
                     <th>Statusi</th>
                     <th></th>
                   </tr>

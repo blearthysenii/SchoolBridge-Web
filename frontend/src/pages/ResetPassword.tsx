@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import tableImg from "../images/table.png";
+import { getErrorMessage } from "../services/errors";
 
 function ResetPassword() {
   const navigate = useNavigate();
@@ -46,7 +47,7 @@ function ResetPassword() {
     setError("");
 
     if (code.trim().length < 4) {
-      setError("Ju lutem shkruani kodin e dërguar në email.");
+      setError("Ju lutemi shkruani kodin e dërguar në adresën e emailit.");
       return;
     }
 
@@ -74,8 +75,8 @@ function ResetPassword() {
       setTimeout(() => {
         navigate("/login");
       }, 1000);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Rivendosja e fjalëkalimit dështoi.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Rivendosja e fjalëkalimit dështoi."));
     } finally {
       setLoading(false);
     }
@@ -631,7 +632,7 @@ function ResetPassword() {
                       <input
                         className="sb-input"
                         type="email"
-                        placeholder="Email adresa"
+                        placeholder="Adresa e emailit"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required

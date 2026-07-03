@@ -3,12 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
 import api from "../services/api";
 import tableImg from "../images/table.png";
+import { getValidAuthToken, setAuthToken, setPendingGoogleRegistration } from "../services/auth";
+import { getErrorMessage } from "../services/errors";
 
 function Login() {
   const navigate = useNavigate();
 
   const [email, setEmail]               = useState("");
   const [password, setPassword]         = useState("");
+  const [rememberMe, setRememberMe]     = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]           = useState(false);
   const [error, setError]               = useState<string | null>(null);
@@ -17,7 +20,11 @@ function Login() {
   useEffect(() => {
     const meta = document.querySelector("meta[name='viewport']");
     if (meta) meta.setAttribute("content", "width=device-width, initial-scale=1");
-  }, []);
+
+    if (getValidAuthToken()) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,12 +32,12 @@ function Login() {
     setSuccessMsg(null);
     setLoading(true);
     try {
-      const response = await api.post("/users/login", { email, password });
-      localStorage.setItem("token", response.data.access_token);
+      const response = await api.post("/users/login", { email, password, remember_me: rememberMe });
+      setAuthToken(response.data.access_token, rememberMe);
       setSuccessMsg("Hyrja u krye me sukses!");
       setTimeout(() => navigate("/dashboard"), 1000);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Email ose fjalekalim i pasakte.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Adresa e emailit ose fjalëkalimi është i pasaktë."));
     } finally {
       setLoading(false);
     }
@@ -50,27 +57,27 @@ function Login() {
         const response = await api.post("/users/google-login", {
           credential: tokenResponse.access_token,
           user_info: userInfo,
+          remember_me: rememberMe,
         });
         if (response.data.status === "existing_user") {
-          localStorage.setItem("token", response.data.access_token);
+          setAuthToken(response.data.access_token, rememberMe);
           setSuccessMsg("Hyrja me Google u krye me sukses!");
           setTimeout(() => navigate("/dashboard"), 1000);
           return;
         }
         if (response.data.status === "new_user") {
-          localStorage.setItem("google_email", response.data.email);
-          localStorage.setItem("google_name", response.data.full_name || "");
+          setPendingGoogleRegistration(response.data.email, response.data.full_name || "", rememberMe);
           navigate("/complete-google-register");
           return;
         }
-        setError("Pergjigje e papritur nga Google login.");
-      } catch (err: any) {
-        setError(err.response?.data?.detail || "Hyrja me Google deshtoi. Provo perseri.");
+        setError("Përgjigje e papritur nga hyrja me Google.");
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, "Hyrja me Google dështoi. Provo përsëri."));
       } finally {
         setLoading(false);
       }
     },
-    onError: () => setError("Hyrja me Google deshtoi. Provo perseri."),
+    onError: () => setError("Hyrja me Google dështoi. Provo përsëri."),
   });
 
   return (
@@ -314,6 +321,27 @@ function Login() {
         }
         .sb-login-btn:hover:not(:disabled) { background: #333; }
         .sb-login-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+        .sb-remember {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 9px;
+          margin: -18px 0 24px;
+          color: #777;
+          font-size: 13.5px;
+          font-weight: 500;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .sb-remember input {
+          width: 16px;
+          height: 16px;
+          accent-color: #1a1a1a;
+          cursor: pointer;
+        }
 
         /* ══════════════════════════════════════════
            SECONDARY LINKS
@@ -563,7 +591,7 @@ function Login() {
                       <input
                         className="sb-input"
                         type="email"
-                        placeholder="Shkruaj email-in"
+                        placeholder="Shkruani adresën e emailit"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
@@ -604,6 +632,15 @@ function Login() {
                       </button>
                     </div>
 
+                    <label className="sb-remember">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                      />
+                      <span>Më mbaj të kyçur</span>
+                    </label>
+
                     <button className="sb-login-btn" type="submit" disabled={loading}>
                       {loading ? "Duke hyrë..." : "Hyr"}
                     </button>
@@ -615,7 +652,7 @@ function Login() {
                     <Link className="sb-forgot-link" to="/forgot-password">Keni harruar fjalëkalimin?</Link>
                   </div>
 
-                  <div className="sb-divider">or</div>
+                  <div className="sb-divider">ose</div>
 
                   <button
                     type="button"

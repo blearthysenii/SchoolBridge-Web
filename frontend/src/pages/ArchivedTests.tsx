@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { getErrorMessage } from "../services/errors";
 
 import api from "../services/api";
+import { clearAuthSession } from "../services/auth";
 import Layout from "../components/Layout";
 import Alert from "../components/Alert";
 import EmptyState from "../components/EmptyState";
@@ -61,12 +63,11 @@ export default function ArchivedTests() {
   useEffect(() => {
     const init = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await api.get("/users/me", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get("/users/me");
         setUser(res.data);
         await load();
       } catch {
-        localStorage.removeItem("token");
+        clearAuthSession();
         navigate("/login");
       }
     };
@@ -88,8 +89,8 @@ export default function ArchivedTests() {
       await updateTestStatus(t.id, "draft");
       setTests((prev) => prev.filter((x) => x.id !== t.id));
       setBanner({ type: "success", text: `Testi "${t.title}" u rikthye me sukses si skicë.` });
-    } catch (err: any) {
-      setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi rikthimi." });
+    } catch (err: unknown) {
+      setBanner({ type: "error", text: getErrorMessage(err, "Dështoi rikthimi.") });
     } finally {
       setRestoringId(null);
       setPendingTest(null);

@@ -1,7 +1,9 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { getErrorMessage } from "../services/errors";
 
 import api from "../services/api";
+import { clearAuthSession } from "../services/auth";
 import { createClassroom, deactivateClassroom, getClassrooms, updateClassroom } from "../services/classroomService";
 import { getDashboardInsights, getDashboardStats } from "../services/dashboardService";
 
@@ -244,24 +246,24 @@ function Dashboard() {
 
   const modalRef = useRef<HTMLDivElement>(null);
 
-  const loadClassrooms = async () => {
+  const loadClassrooms = useCallback(async () => {
     const response = await getClassrooms();
     setClassrooms(response.data);
-  };
+  }, []);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     const response = await getDashboardStats();
     setStats(response.data);
-  };
+  }, []);
 
-  const loadInsights = async () => {
+  const loadInsights = useCallback(async () => {
     const response = await getDashboardInsights();
     setInsights(response.data);
-  };
+  }, []);
 
-  const refreshDashboard = async () => {
+  const refreshDashboard = useCallback(async () => {
     await Promise.all([loadClassrooms(), loadStats(), loadInsights()]);
-  };
+  }, [loadClassrooms, loadStats, loadInsights]);
 
   const resetClassroomForm = () => {
     setName("");
@@ -306,21 +308,18 @@ function Dashboard() {
   useEffect(() => {
     const getUser = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await api.get("/users/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await api.get("/users/me");
         setUser(response.data);
         await refreshDashboard();
       } catch {
-        localStorage.removeItem("token");
+        clearAuthSession();
         navigate("/login");
       } finally {
         setLoading(false);
       }
     };
     getUser();
-  }, [navigate]);
+  }, [navigate, refreshDashboard]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -386,8 +385,8 @@ function Dashboard() {
       resetClassroomForm();
       closeClassroomModal();
       await refreshDashboard();
-    } catch (err: any) {
-      setFormError(err.response?.data?.detail || "Dështoi ruajtja e klasës. Provoni përsëri.");
+    } catch (err: unknown) {
+      setFormError(getErrorMessage(err, "Dështoi ruajtja e klasës. Provoni përsëri."));
     } finally {
       setCreating(false);
     }
@@ -403,8 +402,8 @@ function Dashboard() {
         type: "info",
         text: `Klasa "${classroom.name}" u çaktivizua. Mund ta aktivizoni prapë nga "Klasat jo aktive".`,
       });
-    } catch (err: any) {
-      setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi çaktivizimi i klasës." });
+    } catch (err: unknown) {
+      setBanner({ type: "error", text: getErrorMessage(err, "Dështoi çaktivizimi i klasës.") });
     } finally {
       setDeactivatingId(null);
       setPendingClassroom(null);
@@ -443,7 +442,7 @@ function Dashboard() {
             <StatCard label="Lëndë" value={stats?.subjects ?? "—"} icon={<IconSubjects />} />
             <StatCard label="Teste" value={stats?.tests ?? "—"} icon={<IconTests />} />
             <StatCard label="Rezultate" value={stats?.results ?? "—"} icon={<IconResults />} />
-            <StatCard label="Koncepte" value={stats?.concepts ?? "—"} icon={<IconConcepts />} />
+            <StatCard label="Tema" value={stats?.concepts ?? "—"} icon={<IconConcepts />} />
           </div>
 
           <div className="db-section-title">Veprime të shpejta</div>
@@ -460,7 +459,7 @@ function Dashboard() {
           <div className="db-summary-grid">
             <div className="db-summary-item">
               <div className="db-summary-value">{insights?.summary.concepts_need_attention ?? 0}</div>
-              <div className="db-summary-label">Koncepte kërkojnë vëmendje</div>
+              <div className="db-summary-label">Tema kërkojnë vëmendje</div>
             </div>
             <div className="db-summary-item">
               <div className="db-summary-value">{insights?.summary.students_below_60 ?? 0}</div>
@@ -483,7 +482,7 @@ function Dashboard() {
             <section className="db-panel">
               <div className="db-panel-header">
                 <div>
-                  <div className="db-panel-title">Konceptet më problematike</div>
+                  <div className="db-panel-title">Temat më problematike</div>
                   <div className="db-panel-subtitle">Sipas përgjigjeve të dorëzuara</div>
                 </div>
               </div>
@@ -505,7 +504,7 @@ function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <div className="db-empty-mini">Nuk ka të dhëna për koncepte ende.</div>
+                <div className="db-empty-mini">Nuk ka të dhëna për tema ende.</div>
               )}
             </section>
 

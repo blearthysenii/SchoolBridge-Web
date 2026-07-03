@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getErrorMessage } from "../services/errors";
 
 import { getClassrooms } from "../services/classroomService";
 import { getStudentsByClassroom } from "../services/studentService";
@@ -194,8 +195,8 @@ function SubmitResults() {
       const payload = questions.map((q) => ({ question_id: q.id, is_correct: answers[q.id] }));
       const res = await submitBatchResults(selectedStudentId, selectedTestId, payload);
       setResult(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Dështoi dërgimi i rezultateve.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Dështoi dërgimi i rezultateve."));
     } finally { setSubmitting(false); }
   };
 

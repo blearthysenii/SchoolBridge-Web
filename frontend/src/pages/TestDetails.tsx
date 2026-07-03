@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { getErrorMessage } from "../services/errors";
 
 import api from "../services/api";
 import ConfirmDialog from "../components/ConfirmDialog";
-import { useToast } from "../components/ToastProvider";
+import { useToast } from "../components/toastContext";
 
 import {
   getQuestionsByTest,
@@ -189,7 +190,7 @@ function TestDetails() {
     setFormError("");
   };
 
-  const loadTest = async () => {
+  const loadTest = useCallback(async () => {
     if (!id) return;
 
     const response = await getTestById(Number(id));
@@ -197,24 +198,24 @@ function TestDetails() {
 
     const conceptsResponse = await getConceptsBySubject(response.data.subject_id);
     setConcepts(conceptsResponse.data);
-  };
+  }, [id]);
 
-  const loadQuestions = async () => {
+  const loadQuestions = useCallback(async () => {
     if (!id) return;
 
     const response = await getQuestionsByTest(Number(id));
     setQuestions(response.data);
-  };
+  }, [id]);
 
-  const loadSessions = async () => {
+  const loadSessions = useCallback(async () => {
     if (!id) return;
 
     const response = await getSessionsByTest(Number(id));
     setSessions(response.data);
-  };
+  }, [id]);
 
   const getConceptName = (conceptId: number) => {
-    return concepts.find((c) => c.id === conceptId)?.name ?? `Koncepti #${conceptId}`;
+    return concepts.find((c) => c.id === conceptId)?.name ?? `Tema #${conceptId}`;
   };
 
   const getQuestionTypeLabel = (type?: QuestionType) => {
@@ -235,10 +236,15 @@ function TestDetails() {
   }, [questions]);
 
   useEffect(() => {
-    loadTest();
-    loadQuestions();
-    loadSessions();
-  }, [id]);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      void Promise.all([loadTest(), loadQuestions(), loadSessions()]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadQuestions, loadSessions, loadTest]);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -294,7 +300,7 @@ function TestDetails() {
 
   const validateForm = () => {
     if (!selectedConceptId) {
-      setFormError("Zgjidhni një koncept.");
+      setFormError("Zgjidhni një temë.");
       return false;
     }
 
@@ -347,10 +353,12 @@ function TestDetails() {
       resetForm();
       setModalOpen(false);
       await loadQuestions();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setFormError(
-        err.response?.data?.detail ||
-          "Dështoi ruajtja e pyetjes. Kontrollo a e ke endpoint-in PUT /questions/{id} në backend."
+        getErrorMessage(
+          err,
+          "Dështoi ruajtja e pyetjes. Kontrollo a e ke endpoint-in PUT /questions/{id} në backend.",
+        )
       );
     } finally {
       setSubmitting(false);
@@ -385,8 +393,8 @@ function TestDetails() {
       await deleteQuestion(questionId);
       await loadQuestions();
       showToast("success", "Pyetja u fshi me sukses.");
-    } catch (err: any) {
-      showToast("error", err.response?.data?.detail || "Dështoi fshirja e pyetjes.");
+    } catch (err: unknown) {
+      showToast("error", getErrorMessage(err, "Dështoi fshirja e pyetjes."));
     } finally {
       setDeletingId(null);
       setPendingDeleteQuestionId(null);
@@ -402,8 +410,8 @@ function TestDetails() {
       const response = await api.put(`/tests/${id}/status`, { status });
       setTest(response.data);
       showToast("success", "Statusi i testit u ruajt me sukses.");
-    } catch (err: any) {
-      showToast("error", err.response?.data?.detail || "Dështoi ruajtja e statusit të testit.");
+    } catch (err: unknown) {
+      showToast("error", getErrorMessage(err, "Dështoi ruajtja e statusit të testit."));
     } finally {
       setStatusSaving(false);
     }
@@ -427,8 +435,8 @@ function TestDetails() {
 
     link.remove();
     window.URL.revokeObjectURL(fileURL);
-  } catch (err: any) {
-    showToast("error", err.response?.data?.detail || "Dështoi shkarkimi i PDF-it.");
+  } catch (err: unknown) {
+    showToast("error", getErrorMessage(err, "Dështoi shkarkimi i PDF-it."));
   }
 };
 
@@ -438,10 +446,10 @@ function TestDetails() {
     setPublishingOnline(true);
     try {
       const response = await createTestSession(Number(id));
-      showToast("success", `Seanca online u krijua. Kodi: ${response.data.session_code}`);
+      showToast("success", `Seanca në internet u krijua. Kodi: ${response.data.session_code}`);
       navigate(`/test-sessions/${response.data.session_code}`);
-    } catch (err: any) {
-      showToast("error", err.response?.data?.detail || "Dështoi publikimi online.");
+    } catch (err: unknown) {
+      showToast("error", getErrorMessage(err, "Dështoi publikimi në internet."));
     } finally {
       setPublishingOnline(false);
     }
@@ -1254,7 +1262,7 @@ function TestDetails() {
                   {questions.reduce((sum, q) => sum + (q.points ?? 1), 0)} pikë
                 </span>
                 {concepts.length > 0 && (
-                  <span className="meta-pill">{concepts.length} koncepte</span>
+                  <span className="meta-pill">{concepts.length} tema</span>
                 )}
               </div>
             </div>
@@ -1301,7 +1309,7 @@ function TestDetails() {
               disabled={publishingOnline || questions.length === 0}
               onClick={handlePublishOnline}
             >
-              {publishingOnline ? "Duke publikuar…" : "Publiko Online"}
+              {publishingOnline ? "Duke publikuar…" : "Publiko në internet"}
             </button>
           </div>
 
@@ -1404,7 +1412,7 @@ function TestDetails() {
 
                   {orderedQuestions.length === 0 ? (
                     <div className="empty-state" style={{ margin: 0 }}>
-                      <strong>Nuk ka pyetje për preview</strong>
+                      <strong>Nuk ka pyetje për pamje paraprake</strong>
                     </div>
                   ) : (
                     orderedQuestions.map((q, index) => (
@@ -1464,13 +1472,13 @@ function TestDetails() {
             <form onSubmit={handleCreateOrUpdateQuestion}>
               {concepts.length === 0 && (
                 <div className="no-concepts-warn">
-                  Ky test nuk ka koncepte të lidhura. Shtoni koncepte në lëndën e klasës fillimisht.
+                  Ky test nuk ka tema të lidhura. Shtoni tema në lëndën e klasës fillimisht.
                 </div>
               )}
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Koncepti</label>
+                  <label className="form-label">Tema</label>
                   <select
                     className="form-select"
                     value={selectedConceptId}
@@ -1478,7 +1486,7 @@ function TestDetails() {
                     required
                     disabled={concepts.length === 0}
                   >
-                    <option value="">— Zgjidhni konceptin —</option>
+                    <option value="">— Zgjidhni temën —</option>
                     {concepts.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -1536,7 +1544,7 @@ function TestDetails() {
                     value={layoutPosition}
                     onChange={(e) => setLayoutPosition(e.target.value as LayoutPosition)}
                   >
-                    <option value="full">Full width</option>
+                    <option value="full">Gjerësi e plotë</option>
                     <option value="left">Majtas</option>
                     <option value="right">Djathtas</option>
                   </select>

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { getErrorMessage } from "../services/errors";
 
 import api from "../services/api";
+import { clearAuthSession } from "../services/auth";
 import Layout from "../components/Layout";
 import Alert from "../components/Alert";
 import EmptyState from "../components/EmptyState";
@@ -63,12 +65,11 @@ export default function InactiveStudents() {
   useEffect(() => {
     const init = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await api.get("/users/me", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get("/users/me");
         setUser(res.data);
         await load();
       } catch {
-        localStorage.removeItem("token");
+        clearAuthSession();
         navigate("/login");
       }
     };
@@ -89,8 +90,8 @@ export default function InactiveStudents() {
       await activateStudent(s.id);
       setStudents((prev) => prev.filter((x) => x.id !== s.id));
       setBanner({ type: "success", text: `Nxënësi "${s.full_name}" u riaktivizua me sukses.` });
-    } catch (err: any) {
-      setBanner({ type: "error", text: err.response?.data?.detail || "Dështoi riaktivizimi." });
+    } catch (err: unknown) {
+      setBanner({ type: "error", text: getErrorMessage(err, "Dështoi riaktivizimi.") });
     } finally {
       setRestoringId(null);
       setPendingStudent(null);

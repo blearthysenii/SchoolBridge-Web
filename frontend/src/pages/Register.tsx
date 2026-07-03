@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import tableImg from "../images/table.png";
+import { getErrorMessage } from "../services/errors";
 
 function Register() {
   const navigate = useNavigate();
@@ -84,11 +85,11 @@ function Register() {
     setLoading(true);
     try {
       await api.post("/users/register", { full_name: fullName, role, date_birth: dateBirth, email, password });
-      setMessage("Kodi i verifikimit u dërgua në email.");
+      setMessage("Kodi i verifikimit u dërgua në adresën e emailit.");
       setShowCodeInput(true);
       setResendCooldown(60);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Regjistrimi dështoi.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Regjistrimi dështoi."));
     } finally { setLoading(false); }
   };
 
@@ -99,8 +100,8 @@ function Register() {
       await api.post("/users/verify-email", { email, code });
       setMessage("Llogaria u verifikua me sukses!");
       setTimeout(() => navigate("/login"), 500);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Kodi i verifikimit nuk është i vlefshëm.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Kodi i verifikimit nuk është i vlefshëm."));
       setLoading(false);
     }
   };
@@ -110,10 +111,10 @@ function Register() {
     setMessage(""); setError(""); setLoading(true);
     try {
       await api.post("/users/resend-code", { email });
-      setMessage("Kodi i ri u dërgua në email.");
+      setMessage("Kodi i ri u dërgua në adresën e emailit.");
       setResendCooldown(60);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Ri-dërgimi dështoi.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Ri-dërgimi dështoi."));
     } finally { setLoading(false); }
   };
 
@@ -605,7 +606,7 @@ function Register() {
                         <input
                           className="sb-input"
                           type="email"
-                          placeholder="Email adresa"
+                          placeholder="Adresa e emailit"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           autoComplete="email"
@@ -749,7 +750,7 @@ function Register() {
                         type="button" className="sb-btn-secondary"
                         onClick={() => { setShowCodeInput(false); setCode(""); setMessage(""); setError(""); }}
                       >
-                        Ndrysho email-in
+                        Ndrysho adresën e emailit
                       </button>
 
                     </form>
