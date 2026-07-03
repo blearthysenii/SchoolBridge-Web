@@ -16,6 +16,7 @@ type User = { full_name: string; email: string; role: string };
 type Student = {
   id: number;
   full_name: string;
+  student_code: string;
   personal_number: string;
   parent_phone: string | null;
   final_grade: number | null;
@@ -114,6 +115,7 @@ export default function InactiveStudents() {
               <tr>
                 <th>Emri i plotë</th>
                 <th>Klasa</th>
+                <th>Kodi i nxënësit</th>
                 <th>Numri personal</th>
                 <th>Telefoni i prindit</th>
                 <th>Nota finale</th>
@@ -133,6 +135,7 @@ export default function InactiveStudents() {
                       {classroomName(s.classroom_id)}
                     </Link>
                   </td>
+                  <td className="sb-td-muted">{s.student_code}</td>
                   <td className="sb-td-muted">{s.personal_number}</td>
                   <td className="sb-td-muted">{s.parent_phone || "—"}</td>
                   <td className="sb-td-muted">{s.final_grade ?? "—"}</td>

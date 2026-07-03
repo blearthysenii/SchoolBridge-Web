@@ -75,3 +75,27 @@ export const deleteTest = async (testId: number) => {
     },
   });
 };
+
+export const createTestSession = async (testId: number) => {
+  const token = localStorage.getItem("token");
+
+  return await api.post(
+    "/test-sessions/",
+    { test_id: testId },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+};
+
+export const getSessionsByTest = async (testId: number) => {
+  const token = localStorage.getItem("token");
+
+  return await api.get(`/test-sessions/test/${testId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};

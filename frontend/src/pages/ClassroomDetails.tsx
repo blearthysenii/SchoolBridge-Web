@@ -52,6 +52,7 @@ type Classroom = {
 type Student = {
   id: number;
   full_name: string;
+  student_code: string;
   personal_number: string;
   parent_phone: string | null;
   final_grade: number | null;
@@ -637,6 +638,7 @@ function ClassroomDetails() {
                     <thead>
                       <tr>
                         <th>Emri i plotë</th>
+                        <th>Kodi i nxënësit</th>
                         <th>Numri personal</th>
                         <th>Telefoni i prindit</th>
                         <th>Nota finale</th>
@@ -652,6 +654,7 @@ function ClassroomDetails() {
                               {s.full_name}
                             </Link>
                           </td>
+                          <td className="sb-td-meta">{s.student_code}</td>
                           <td className="sb-td-meta">{s.personal_number}</td>
                           <td className="sb-td-meta">{s.parent_phone || "—"}</td>
                           <td className="sb-td-meta">{s.final_grade ?? "—"}</td>

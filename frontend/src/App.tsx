@@ -16,6 +16,8 @@ const TestDetails = lazy(() => import("./pages/TestDetails"));
 const StudentResults = lazy(() => import("./pages/StudentResults"));
 const SubmitResults = lazy(() => import("./pages/SubmitResults"));
 const TestAnalytics = lazy(() => import("./pages/TestAnalytics"));
+const TestSessionControl = lazy(() => import("./pages/TestSessionControl"));
+const OnlineTest = lazy(() => import("./pages/OnlineTest"));
 const InactiveClassrooms = lazy(() => import("./pages/InactiveClassrooms"));
 const InactiveStudents = lazy(() => import("./pages/InactiveStudents"));
 const InactiveSubjects = lazy(() => import("./pages/InactiveSubjects"));
@@ -100,6 +102,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/test-sessions/:code"
+            element={
+              <ProtectedRoute>
+                <TestSessionControl />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/online-test" element={<OnlineTest />} />
+          <Route path="/online-test/:sessionCode" element={<OnlineTest />} />
           <Route
             path="/inactive-classrooms"
             element={

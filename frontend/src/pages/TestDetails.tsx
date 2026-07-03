@@ -10,7 +10,7 @@ import {
   deleteQuestion,
 } from "../services/questionService";
 
-import { getTestById } from "../services/testService";
+import { createTestSession, getSessionsByTest, getTestById } from "../services/testService";
 import { getConceptsBySubject } from "../services/conceptService";
 
 type QuestionType = "multiple_choice" | "short_answer" | "true_false" | "essay";
@@ -32,6 +32,7 @@ type Question = {
   question_type?: QuestionType;
   layout_position?: LayoutPosition;
   points?: number;
+  expected_answer?: string | null;
   options?: QuestionOption[];
 };
 
@@ -41,6 +42,15 @@ type Test = {
   status?: TestStatus;
   classroom_id: number;
   subject_id: number;
+};
+
+type TestSession = {
+  id: number;
+  test_id: number;
+  session_code: string;
+  status: "waiting" | "active" | "paused" | "ended";
+  attempts: Array<{ attempt_id: number; status: string }>;
+  created_at: string;
 };
 
 type Concept = {
@@ -140,6 +150,7 @@ function TestDetails() {
   const [test, setTest] = useState<Test | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [concepts, setConcepts] = useState<Concept[]>([]);
+  const [sessions, setSessions] = useState<TestSession[]>([]);
 
   const [questionText, setQuestionText] = useState("");
   const [selectedConceptId, setSelectedConceptId] = useState<number | "">("");
@@ -156,6 +167,7 @@ function TestDetails() {
   const [modalOpen, setModalOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [publishingOnline, setPublishingOnline] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -194,6 +206,13 @@ function TestDetails() {
     setQuestions(response.data);
   };
 
+  const loadSessions = async () => {
+    if (!id) return;
+
+    const response = await getSessionsByTest(Number(id));
+    setSessions(response.data);
+  };
+
   const getConceptName = (conceptId: number) => {
     return concepts.find((c) => c.id === conceptId)?.name ?? `Koncepti #${conceptId}`;
   };
@@ -218,6 +237,7 @@ function TestDetails() {
   useEffect(() => {
     loadTest();
     loadQuestions();
+    loadSessions();
   }, [id]);
 
   useEffect(() => {
@@ -412,6 +432,28 @@ function TestDetails() {
   }
 };
 
+  const handlePublishOnline = async () => {
+    if (!id) return;
+
+    setPublishingOnline(true);
+    try {
+      const response = await createTestSession(Number(id));
+      showToast("success", `Seanca online u krijua. Kodi: ${response.data.session_code}`);
+      navigate(`/test-sessions/${response.data.session_code}`);
+    } catch (err: any) {
+      showToast("error", err.response?.data?.detail || "Dështoi publikimi online.");
+    } finally {
+      setPublishingOnline(false);
+    }
+  };
+
+  const getSessionStatusLabel = (status: TestSession["status"]) => {
+    if (status === "active") return "Aktive";
+    if (status === "paused") return "Pauzuar";
+    if (status === "ended") return "Përfunduar";
+    return "Në pritje";
+  };
+
   const renderOptions = (question: Question) => {
     if (!question.options || question.options.length === 0) return null;
 
@@ -554,6 +596,31 @@ function TestDetails() {
           gap: 8px;
           flex-wrap: wrap;
           margin-top: 18px;
+        }
+
+        .online-session-strip {
+          margin-top: 14px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .online-session-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          border: 1px solid rgba(191,219,254,0.9);
+          background: rgba(239,246,255,0.72);
+          color: #1d4ed8;
+          border-radius: 15px;
+          padding: 8px 11px;
+          font-size: 12.5px;
+          font-weight: 850;
+        }
+
+        .online-session-link span {
+          color: #64748b;
+          font-weight: 800;
         }
 
         .meta-pills {
@@ -1228,7 +1295,30 @@ function TestDetails() {
             >
               Shkarko PDF
             </button>
+
+            <button
+              className="btn-success"
+              disabled={publishingOnline || questions.length === 0}
+              onClick={handlePublishOnline}
+            >
+              {publishingOnline ? "Duke publikuar…" : "Publiko Online"}
+            </button>
           </div>
+
+          {sessions.length > 0 && (
+            <div className="online-session-strip">
+              {sessions.slice(0, 4).map((session) => (
+                <Link
+                  key={session.id}
+                  to={`/test-sessions/${session.session_code}`}
+                  className="online-session-link"
+                >
+                  Kodi {session.session_code}
+                  <span>{getSessionStatusLabel(session.status)} · {session.attempts.length} nxënës</span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className={previewOpen ? "builder-grid" : ""}>
