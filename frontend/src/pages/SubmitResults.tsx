@@ -5,14 +5,34 @@ import { getErrorMessage } from "../services/errors";
 import { getClassrooms } from "../services/classroomService";
 import { getStudentsByClassroom } from "../services/studentService";
 import { getTestsByClassroom } from "../services/testService";
-import { getQuestionsByTest } from "../services/questionService";
-import { submitBatchResults } from "../services/resultService";
+import { getTestResultState, submitBatchResults, updateTestResults } from "../services/resultService";
 
 type Classroom = { id: number; name: string; grade: number };
 type Student = { id: number; full_name: string };
 type Test = { id: number; title: string };
-type Question = { id: number; question_text: string; concept_id: number };
-type BatchResultResponse = { submitted: number; correct: number; incorrect: number; score: number };
+type Question = {
+  question_id: number;
+  question_text: string;
+  question_type: string;
+  current_is_correct: boolean | null;
+  current_points: number | null;
+  max_points: number;
+  graded_by: "system" | "ai" | "teacher" | "manual" | null;
+  ai_feedback_for_teacher: string | null;
+  teacher_feedback_override: string | null;
+  needs_teacher_review: boolean;
+  source_type: "online" | "manual" | null;
+  answer_id: number | null;
+  result_id: number | null;
+};
+type BatchResultResponse = {
+  submitted: number;
+  correct: number;
+  incorrect: number;
+  score: number;
+  has_existing_results?: boolean;
+  questions?: Question[];
+};
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 function IconBack() {
@@ -131,6 +151,7 @@ function SubmitResults() {
   const [selectedStudentId, setSelectedStudentId] = useState<number | "">("");
   const [selectedTestId, setSelectedTestId] = useState<number | "">("");
   const [answers, setAnswers] = useState<Record<number, boolean>>({});
+  const [hasExistingResults, setHasExistingResults] = useState(false);
 
   const [result, setResult] = useState<BatchResultResponse | null>(null);
   const [error, setError] = useState("");
@@ -142,6 +163,35 @@ function SubmitResults() {
     getClassrooms().then((res) => setClassrooms(res.data));
   }, []);
 
+  const applyResultState = (data: BatchResultResponse) => {
+    if (data.questions) {
+      setQuestions(data.questions);
+      const nextAnswers: Record<number, boolean> = {};
+      data.questions.forEach((question) => {
+        if (typeof question.current_is_correct === "boolean") {
+          nextAnswers[question.question_id] = question.current_is_correct;
+        }
+      });
+      setAnswers(nextAnswers);
+    }
+    setHasExistingResults(Boolean(data.has_existing_results));
+  };
+
+  const loadResultState = async (studentId: number, testId: number) => {
+    setLoadingQuestions(true);
+    try {
+      const res = await getTestResultState(studentId, testId);
+      applyResultState(res.data);
+    } catch {
+      setError("Dështoi ngarkimi i rezultateve ekzistuese. Provoni përsëri.");
+      setQuestions([]);
+      setAnswers({});
+      setHasExistingResults(false);
+    } finally {
+      setLoadingQuestions(false);
+    }
+  };
+
   const handleClassroomChange = async (value: string) => {
     const classroomId = value ? Number(value) : "";
     setSelectedClassroomId(classroomId);
@@ -149,6 +199,7 @@ function SubmitResults() {
     setSelectedTestId("");
     setQuestions([]);
     setAnswers({});
+    setHasExistingResults(false);
     setResult(null);
     setError("");
     if (!classroomId) { setStudents([]); setTests([]); return; }
@@ -169,17 +220,12 @@ function SubmitResults() {
     const testId = value ? Number(value) : "";
     setSelectedTestId(testId);
     setAnswers({});
+    setHasExistingResults(false);
     setResult(null);
     setError("");
     if (!testId) { setQuestions([]); return; }
-    setLoadingQuestions(true);
-    try {
-      const res = await getQuestionsByTest(testId);
-      setQuestions(res.data);
-    } catch {
-      setError("Dështoi ngarkimi i pyetjeve. Provoni përsëri.");
-      setQuestions([]);
-    } finally { setLoadingQuestions(false); }
+    if (!selectedStudentId) { setQuestions([]); return; }
+    await loadResultState(Number(selectedStudentId), testId);
   };
 
   const handleAnswer = (questionId: number, isCorrect: boolean) => {
@@ -192,8 +238,14 @@ function SubmitResults() {
     if (!selectedStudentId || !selectedTestId) { setError("Zgjidhni nxënësin dhe testin."); return; }
     setSubmitting(true);
     try {
-      const payload = questions.map((q) => ({ question_id: q.id, is_correct: answers[q.id] }));
-      const res = await submitBatchResults(selectedStudentId, selectedTestId, payload);
+      const payload = questions.map((q) => ({
+        question_id: q.question_id,
+        is_correct: answers[q.question_id] === true,
+      }));
+      const res = hasExistingResults
+        ? await updateTestResults(selectedStudentId, selectedTestId, payload)
+        : await submitBatchResults(selectedStudentId, selectedTestId, payload);
+      applyResultState(res.data);
       setResult(res.data);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Dështoi dërgimi i rezultateve."));
@@ -206,6 +258,7 @@ function SubmitResults() {
     setSelectedStudentId("");
     setSelectedTestId("");
     setQuestions([]);
+    setHasExistingResults(false);
     setError("");
   };
 
@@ -216,6 +269,22 @@ function SubmitResults() {
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId);
   const selectedTest = tests.find((t) => t.id === selectedTestId);
+
+  const sourceLabel = (question: Question) => {
+    if (question.graded_by === "system") return "Sistemi";
+    if (question.graded_by === "ai") return "AI";
+    if (question.graded_by === "teacher") return "Mësimdhënësi";
+    if (question.graded_by === "manual") return "Manual";
+    return "Pa rezultat";
+  };
+
+  const sourceClass = (question: Question) => {
+    if (question.graded_by === "system") return " system";
+    if (question.graded_by === "ai") return " ai";
+    if (question.graded_by === "teacher") return " teacher";
+    if (question.graded_by === "manual") return " manual";
+    return " empty";
+  };
 
   return (
     <>
@@ -332,7 +401,23 @@ function SubmitResults() {
           font-size: 12px; font-weight: 700;
           display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
-        .question-text { font-size: 13.5px; color: #0f172a; flex: 1; line-height: 1.5; padding-top: 2px; }
+        .question-content { flex: 1; min-width: 0; }
+        .question-text { font-size: 13.5px; color: #0f172a; line-height: 1.5; padding-top: 2px; }
+        .question-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .source-badge, .points-badge, .review-badge {
+          display: inline-flex; align-items: center;
+          border-radius: 999px; padding: 3px 8px;
+          font-size: 11px; font-weight: 800;
+          border: 1px solid rgba(226,232,240,0.86);
+          background: rgba(248,250,252,0.78); color: #64748b;
+        }
+        .source-badge.system { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+        .source-badge.ai { background: #f5f3ff; border-color: #ddd6fe; color: #6d28d9; }
+        .source-badge.teacher { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+        .source-badge.manual { background: #f8fafc; border-color: #cbd5e1; color: #475569; }
+        .source-badge.empty { background: rgba(248,250,252,0.55); color: #94a3b8; }
+        .points-badge { color: #0f172a; }
+        .review-badge { background: #fef3c7; border-color: #fde68a; color: #92400e; }
         .answer-btns { display: flex; gap: 6px; flex-shrink: 0; }
         .ans-btn {
           display: flex; align-items: center; gap: 4px;
@@ -449,7 +534,9 @@ function SubmitResults() {
           /* ── SUCCESS STATE ── */
           <div className="result-card">
             <div className="result-icon-wrap"><IconTrophy /></div>
-            <div className="result-title">Rezultatet u ruajtën!</div>
+            <div className="result-title">
+              {result.has_existing_results ? "Ndryshimet u ruajtën!" : "Rezultatet u ruajtën!"}
+            </div>
             <div className="result-sub">
               {selectedStudent?.full_name && <><strong>{selectedStudent.full_name}</strong> · </>}
               {selectedTest?.title}
@@ -511,9 +598,18 @@ function SubmitResults() {
                   <select
                     className="form-select"
                     value={selectedStudentId}
-                    onChange={(e) => {
-                      setSelectedStudentId(e.target.value ? Number(e.target.value) : "");
-                      setResult(null); setError("");
+                    onChange={async (e) => {
+                      const nextStudentId = e.target.value ? Number(e.target.value) : "";
+                      setSelectedStudentId(nextStudentId);
+                      setResult(null);
+                      setError("");
+                      setAnswers({});
+                      setHasExistingResults(false);
+                      if (nextStudentId && selectedTestId) {
+                        await loadResultState(Number(nextStudentId), Number(selectedTestId));
+                      } else {
+                        setQuestions([]);
+                      }
                     }}
                     disabled={!selectedClassroomId || loadingClassroom}
                     required
@@ -568,7 +664,13 @@ function SubmitResults() {
                   </div>
                 )}
 
-                {selectedTestId && !loadingQuestions && questions.length === 0 && (
+                {selectedTestId && !selectedStudentId && !loadingQuestions && (
+                  <div className="empty-note" style={{ marginTop: 12 }}>
+                    Zgjidhni nxënësin për të kontrolluar rezultatet ekzistuese.
+                  </div>
+                )}
+
+                {selectedTestId && selectedStudentId && !loadingQuestions && questions.length === 0 && (
                   <div className="empty-note" style={{ marginTop: 12 }}>
                     Ky test nuk ka pyetje ende.
                   </div>
@@ -597,24 +699,35 @@ function SubmitResults() {
 
                   <div className="question-list">
                     {questions.map((q, i) => {
-                      const ans = answers[q.id];
+                      const ans = answers[q.question_id];
                       const cls = ans === undefined ? "" : ans ? " answered-correct" : " answered-incorrect";
                       return (
-                        <div key={q.id} className={`question-item${cls}`}>
+                        <div key={q.question_id} className={`question-item${cls}`}>
                           <div className="question-num">{i + 1}</div>
-                          <div className="question-text">{q.question_text}</div>
+                          <div className="question-content">
+                            <div className="question-text">{q.question_text}</div>
+                            <div className="question-meta">
+                              <span className={`source-badge${sourceClass(q)}`}>{sourceLabel(q)}</span>
+                              {q.current_points !== null && (
+                                <span className="points-badge">{q.current_points}/{q.max_points} pikë</span>
+                              )}
+                              {q.needs_teacher_review && (
+                                <span className="review-badge">Kërkon rishikim</span>
+                              )}
+                            </div>
+                          </div>
                           <div className="answer-btns">
                             <button
                               type="button"
                               className={`ans-btn${ans === true ? " sel-correct" : ""}`}
-                              onClick={() => handleAnswer(q.id, true)}
+                              onClick={() => handleAnswer(q.question_id, true)}
                             >
                               <IconCheck /> Korrekte
                             </button>
                             <button
                               type="button"
                               className={`ans-btn${ans === false ? " sel-incorrect" : ""}`}
-                              onClick={() => handleAnswer(q.id, false)}
+                              onClick={() => handleAnswer(q.question_id, false)}
                             >
                               <IconX /> Gabim
                             </button>
@@ -641,14 +754,16 @@ function SubmitResults() {
                 <div className="submit-bar">
                   <div className="submit-bar-info">
                     {allAnswered
-                      ? <><strong>Të gjitha pyetjet</strong> janë shënuar — gati për dërgim.</>
+                      ? hasExistingResults
+                        ? <><strong>Rezultatet ekzistuese</strong> do të përditësohen pa krijuar dublikatë.</>
+                        : <><strong>Të gjitha pyetjet</strong> janë shënuar — gati për dërgim.</>
                       : <><strong>{questions.length - answeredCount}</strong> pyetje mbeten pa u shënuar.</>
                     }
                   </div>
                   <button type="submit" className="btn-primary" disabled={!allAnswered || submitting}>
                     {submitting
                       ? <><span className="spin"><IconSpinner /></span> Duke dërguar…</>
-                      : <><IconSend /> Dorëzo rezultatet</>
+                      : <><IconSend /> {hasExistingResults ? "Ruaj ndryshimet" : "Dorëzo rezultatet"}</>
                     }
                   </button>
                 </div>

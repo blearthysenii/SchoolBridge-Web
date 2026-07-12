@@ -37,3 +37,18 @@ export const submitBatchResults = async (
     },
   );
 };
+
+export const getTestResultState = async (studentId: number, testId: number) => {
+  return await api.get(`/results/test/${testId}/student/${studentId}`);
+};
+
+export const updateTestResults = async (
+  studentId: number,
+  testId: number,
+  answers: { question_id: number; is_correct: boolean }[]
+) => {
+  return await api.put(
+    `/results/test/${testId}/student/${studentId}`,
+    { answers },
+  );
+};
