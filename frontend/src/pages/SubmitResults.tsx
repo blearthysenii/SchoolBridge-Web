@@ -14,11 +14,16 @@ type Question = {
   question_id: number;
   question_text: string;
   question_type: string;
+  student_answer: string | null;
+  expected_answer: string | null;
   current_is_correct: boolean | null;
   current_points: number | null;
+  ai_points_earned: number | null;
   max_points: number;
   graded_by: "system" | "ai" | "teacher" | "manual" | null;
   ai_feedback_for_teacher: string | null;
+  ai_confidence: number | null;
+  teacher_points_override: number | null;
   teacher_feedback_override: string | null;
   needs_teacher_review: boolean;
   source_type: "online" | "manual" | null;
@@ -151,6 +156,7 @@ function SubmitResults() {
   const [selectedStudentId, setSelectedStudentId] = useState<number | "">("");
   const [selectedTestId, setSelectedTestId] = useState<number | "">("");
   const [answers, setAnswers] = useState<Record<number, boolean>>({});
+  const [pointOverrides, setPointOverrides] = useState<Record<number, number>>({});
   const [hasExistingResults, setHasExistingResults] = useState(false);
 
   const [result, setResult] = useState<BatchResultResponse | null>(null);
@@ -167,12 +173,17 @@ function SubmitResults() {
     if (data.questions) {
       setQuestions(data.questions);
       const nextAnswers: Record<number, boolean> = {};
+      const nextPointOverrides: Record<number, number> = {};
       data.questions.forEach((question) => {
         if (typeof question.current_is_correct === "boolean") {
           nextAnswers[question.question_id] = question.current_is_correct;
         }
+        if (question.source_type === "online" && typeof question.current_points === "number") {
+          nextPointOverrides[question.question_id] = question.current_points;
+        }
       });
       setAnswers(nextAnswers);
+      setPointOverrides(nextPointOverrides);
     }
     setHasExistingResults(Boolean(data.has_existing_results));
   };
@@ -186,6 +197,7 @@ function SubmitResults() {
       setError("Dështoi ngarkimi i rezultateve ekzistuese. Provoni përsëri.");
       setQuestions([]);
       setAnswers({});
+      setPointOverrides({});
       setHasExistingResults(false);
     } finally {
       setLoadingQuestions(false);
@@ -199,6 +211,7 @@ function SubmitResults() {
     setSelectedTestId("");
     setQuestions([]);
     setAnswers({});
+    setPointOverrides({});
     setHasExistingResults(false);
     setResult(null);
     setError("");
@@ -220,6 +233,7 @@ function SubmitResults() {
     const testId = value ? Number(value) : "";
     setSelectedTestId(testId);
     setAnswers({});
+    setPointOverrides({});
     setHasExistingResults(false);
     setResult(null);
     setError("");
@@ -230,6 +244,20 @@ function SubmitResults() {
 
   const handleAnswer = (questionId: number, isCorrect: boolean) => {
     setAnswers((prev) => ({ ...prev, [questionId]: isCorrect }));
+    const question = questions.find((item) => item.question_id === questionId);
+    if (question?.source_type === "online") {
+      setPointOverrides((prev) => ({
+        ...prev,
+        [questionId]: isCorrect ? question.max_points : 0,
+      }));
+    }
+  };
+
+  const handlePointOverride = (question: Question, value: string) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return;
+    const clamped = Math.max(0, Math.min(question.max_points, Math.round(parsed)));
+    setPointOverrides((prev) => ({ ...prev, [question.question_id]: clamped }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -241,6 +269,9 @@ function SubmitResults() {
       const payload = questions.map((q) => ({
         question_id: q.question_id,
         is_correct: answers[q.question_id] === true,
+        ...(q.source_type === "online"
+          ? { points_earned: pointOverrides[q.question_id] ?? (answers[q.question_id] ? q.max_points : 0) }
+          : {}),
       }));
       const res = hasExistingResults
         ? await updateTestResults(selectedStudentId, selectedTestId, payload)
@@ -255,6 +286,7 @@ function SubmitResults() {
   const handleSubmitAnother = () => {
     setResult(null);
     setAnswers({});
+    setPointOverrides({});
     setSelectedStudentId("");
     setSelectedTestId("");
     setQuestions([]);
@@ -284,6 +316,32 @@ function SubmitResults() {
     if (question.graded_by === "teacher") return " teacher";
     if (question.graded_by === "manual") return " manual";
     return " empty";
+  };
+
+  const isAiReviewedQuestion = (question: Question) => {
+    return (
+      question.source_type === "online" &&
+      (
+        question.graded_by === "ai" ||
+        question.graded_by === "teacher" ||
+        Boolean(question.ai_feedback_for_teacher) ||
+        question.ai_confidence !== null ||
+        question.question_type === "short_answer" ||
+        question.question_type === "essay"
+      )
+    );
+  };
+
+  const formatAiConfidence = (value: number | null) => {
+    if (value === null || value === undefined) return "Nuk është dhënë";
+    const normalized = value <= 1 ? value * 100 : value;
+    return `${Math.round(normalized)}%`;
+  };
+
+  const getAiConfidencePercent = (value: number | null) => {
+    if (value === null || value === undefined) return 0;
+    const normalized = value <= 1 ? value * 100 : value;
+    return Math.max(0, Math.min(100, Math.round(normalized)));
   };
 
   return (
@@ -404,6 +462,256 @@ function SubmitResults() {
         .question-content { flex: 1; min-width: 0; }
         .question-text { font-size: 13.5px; color: #0f172a; line-height: 1.5; padding-top: 2px; }
         .question-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .ai-question-card {
+          display: block;
+          width: 100%;
+          padding: 22px;
+          border-radius: 16px;
+          border: 1px solid #E5E7EB;
+          background: #fff;
+          box-shadow: 0 14px 30px rgba(15,23,42,0.06);
+        }
+        .ai-question-card:hover {
+          background: #fff;
+          border-color: #dbe3ef;
+          box-shadow: 0 18px 38px rgba(15,23,42,0.08);
+        }
+        .ai-question-card.answered-correct,
+        .ai-question-card.answered-incorrect {
+          background: #fff;
+          border-color: #E5E7EB;
+        }
+        .ai-card-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 18px;
+          margin-bottom: 16px;
+        }
+        .ai-question-heading {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          min-width: 0;
+          flex: 1;
+        }
+        .ai-question-title {
+          min-width: 0;
+        }
+        .ai-question-title .question-text {
+          font-size: 15px;
+          font-weight: 800;
+          line-height: 1.45;
+          padding-top: 1px;
+        }
+        .ai-header-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+          margin-top: 8px;
+        }
+        .ai-status-pill,
+        .teacher-changed-badge {
+          display: inline-flex;
+          align-items: center;
+          border-radius: 999px;
+          border: 1px solid #ddd6fe;
+          background: #f5f3ff;
+          color: #6d28d9;
+          font-size: 11.5px;
+          font-weight: 850;
+          padding: 4px 9px;
+          white-space: nowrap;
+        }
+        .teacher-changed-badge {
+          border-color: #bfdbfe;
+          background: #eff6ff;
+          color: #1d4ed8;
+        }
+        .ai-score-summary {
+          flex-shrink: 0;
+          min-width: 92px;
+          text-align: right;
+          color: #111827;
+          font-size: 20px;
+          line-height: 1.05;
+          font-weight: 900;
+        }
+        .ai-score-summary span {
+          display: block;
+          margin-top: 4px;
+          color: #64748b;
+          font-size: 11px;
+          font-weight: 800;
+        }
+        .student-answer-panel {
+          width: 100%;
+          margin-bottom: 16px;
+          padding: 16px 18px;
+          border: 1px solid #E5E7EB;
+          border-left: 3px solid #2563eb;
+          border-radius: 14px;
+          background: #ffffff;
+        }
+        .student-answer-panel.is-correct { border-left-color: #22c55e; }
+        .student-answer-panel.is-incorrect { border-left-color: #ef4444; }
+        .review-section-title {
+          display: block;
+          margin-bottom: 7px;
+          color: #334155;
+          font-size: 13px;
+          line-height: 1.3;
+          font-weight: 850;
+        }
+        .student-answer-text {
+          color: #0f172a;
+          font-size: 16px;
+          line-height: 1.6;
+          font-weight: 700;
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
+        }
+        .ai-compare-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 14px;
+          margin-bottom: 14px;
+        }
+        .review-panel {
+          min-width: 0;
+          border: 1px solid #E5E7EB;
+          border-radius: 14px;
+          background: #fff;
+          padding: 15px 16px;
+        }
+        .criteria-box {
+          color: #1e293b;
+          font-size: 13.5px;
+          line-height: 1.55;
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
+        }
+        .criteria-box.missing {
+          border: 1px solid #fde68a;
+          border-radius: 12px;
+          background: #fffbeb;
+          color: #92400e;
+          padding: 11px 12px;
+          font-weight: 650;
+        }
+        .ai-verdict-stack {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .ai-verdict-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          color: #475569;
+          font-size: 13px;
+          line-height: 1.35;
+        }
+        .ai-verdict-row strong {
+          color: #0f172a;
+          font-weight: 850;
+          text-align: right;
+        }
+        .ai-decision {
+          display: inline-flex;
+          align-items: center;
+          border-radius: 999px;
+          padding: 3px 9px;
+          font-size: 12px;
+          font-weight: 900;
+        }
+        .ai-decision.correct { background: #dcfce7; color: #15803d; }
+        .ai-decision.incorrect { background: #fee2e2; color: #b91c1c; }
+        .confidence-wrap {
+          margin-top: 2px;
+        }
+        .confidence-meta {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          color: #475569;
+          font-size: 13px;
+          margin-bottom: 7px;
+        }
+        .confidence-track {
+          height: 8px;
+          overflow: hidden;
+          border-radius: 999px;
+          background: #ede9fe;
+        }
+        .confidence-fill {
+          height: 100%;
+          border-radius: inherit;
+          background: linear-gradient(90deg, #a78bfa, #6d28d9);
+        }
+        .ai-feedback-panel {
+          margin-bottom: 14px;
+          border: 1px solid #E5E7EB;
+          border-radius: 14px;
+          background: #fff;
+          padding: 15px 16px;
+        }
+        .ai-feedback-text,
+        .ai-review-text {
+          font-size: 13.5px;
+          line-height: 1.6;
+          color: #1e293b;
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
+        }
+        .ai-review-muted { color: #94a3b8; font-style: italic; }
+        .final-decision {
+          border: 1px solid #bfdbfe;
+          border-radius: 14px;
+          background: #eff6ff;
+          padding: 16px;
+        }
+        .final-decision-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+        .final-control-row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 170px;
+          gap: 12px;
+          align-items: end;
+        }
+        .final-choice-group {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 9px;
+        }
+        .final-points label {
+          display: block;
+          color: #1e40af;
+          font-size: 12px;
+          font-weight: 850;
+          margin-bottom: 6px;
+        }
+        .points-input {
+          width: 100%;
+          min-height: 40px;
+          border: 1px solid #93c5fd;
+          border-radius: 10px;
+          background: rgba(255,255,255,0.96);
+          color: #0f172a;
+          font-size: 14px;
+          font-weight: 850;
+          padding: 8px 10px;
+          outline: none;
+        }
+        .points-input:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.16);
+        }
         .source-badge, .points-badge, .review-badge {
           display: inline-flex; align-items: center;
           border-radius: 999px; padding: 3px 8px;
@@ -429,6 +737,13 @@ function SubmitResults() {
         .ans-btn:hover { border-color: #cbd5e1; }
         .ans-btn.sel-correct { background: rgba(240,253,244,0.86); border-color: #22c55e; color: #16a34a; }
         .ans-btn.sel-incorrect { background: rgba(255,245,245,0.86); border-color: #ef4444; color: #dc2626; }
+        .final-choice-group .ans-btn {
+          min-height: 42px;
+          justify-content: center;
+          border-radius: 12px;
+          background: #fff;
+          font-size: 13px;
+        }
 
         /* PROGRESS BAR */
         .progress-wrap { margin: 20px 0 0; }
@@ -510,6 +825,13 @@ function SubmitResults() {
           .page { padding: 20px 16px; }
           .topbar { padding: 0 16px; width: min(100% - 20px, 720px); top: 10px; min-height: 62px; }
           .field-row { grid-template-columns: 1fr; }
+          .ai-question-card { padding: 16px; }
+          .ai-card-header { flex-direction: column; gap: 12px; }
+          .ai-score-summary { width: 100%; text-align: left; }
+          .ai-compare-grid { grid-template-columns: 1fr; }
+          .final-decision-header { align-items: flex-start; flex-direction: column; }
+          .final-control-row { grid-template-columns: 1fr; }
+          .final-choice-group { grid-template-columns: 1fr; }
           .question-item { flex-wrap: wrap; }
           .answer-btns { width: 100%; }
           .ans-btn { flex: 1; justify-content: center; }
@@ -701,6 +1023,145 @@ function SubmitResults() {
                     {questions.map((q, i) => {
                       const ans = answers[q.question_id];
                       const cls = ans === undefined ? "" : ans ? " answered-correct" : " answered-incorrect";
+                      const aiReviewed = isAiReviewedQuestion(q);
+                      const aiProposedPoints =
+                        typeof q.ai_points_earned === "number"
+                          ? q.ai_points_earned
+                          : q.current_points ?? 0;
+                      const aiConfidencePercent = getAiConfidencePercent(q.ai_confidence);
+                      const aiDecisionIsCorrect = aiProposedPoints > 0;
+                      const overridePoints =
+                        pointOverrides[q.question_id] ??
+                        q.current_points ??
+                        aiProposedPoints ??
+                        0;
+                      const teacherAdjusted =
+                        q.graded_by === "teacher" ||
+                        (q.current_is_correct !== null && ans !== undefined && ans !== q.current_is_correct) ||
+                        (
+                          q.source_type === "online" &&
+                          q.current_points !== null &&
+                          pointOverrides[q.question_id] !== undefined &&
+                          overridePoints !== q.current_points
+                        );
+
+                      if (aiReviewed) {
+                        return (
+                          <div key={q.question_id} className={`question-item ai-question-card${cls}`}>
+                            <div className="ai-card-header">
+                              <div className="ai-question-heading">
+                                <div className="question-num">{i + 1}</div>
+                                <div className="ai-question-title">
+                                  <div className="question-text">{q.question_text}</div>
+                                  <div className="ai-header-meta">
+                                    <span className="ai-status-pill">Vlerësuar nga AI</span>
+                                    {q.needs_teacher_review && (
+                                      <span className="review-badge">Kërkon rishikim</span>
+                                    )}
+                                    {teacherAdjusted && (
+                                      <span className="teacher-changed-badge">Ndryshuar nga mësimdhënësi</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="ai-score-summary">
+                                {aiProposedPoints}/{q.max_points}
+                                <span>pikë të propozuara</span>
+                              </div>
+                            </div>
+
+                            <div className={`student-answer-panel${ans === true ? " is-correct" : ans === false ? " is-incorrect" : ""}`}>
+                              <span className="review-section-title">Përgjigjja e nxënësit</span>
+                              <div className={`student-answer-text${q.student_answer ? "" : " ai-review-muted"}`}>
+                                {q.student_answer || "Nuk ka përgjigje të shkruar."}
+                              </div>
+                            </div>
+
+                            <div className="ai-compare-grid">
+                              <div className="review-panel">
+                                <span className="review-section-title">Përgjigjja e saktë / Kriteri</span>
+                                <div className={`criteria-box${q.expected_answer ? "" : " missing"}`}>
+                                  {q.expected_answer || "Nuk është vendosur kriter nga mësimdhënësi."}
+                                </div>
+                              </div>
+
+                              <div className="review-panel">
+                                <span className="review-section-title">Vlerësimi i AI-së</span>
+                                <div className="ai-verdict-stack">
+                                  <div className="ai-verdict-row">
+                                    <span>Vendimi</span>
+                                    <strong>
+                                      <span className={`ai-decision${aiDecisionIsCorrect ? " correct" : " incorrect"}`}>
+                                        {aiDecisionIsCorrect ? "E saktë" : "E pasaktë"}
+                                      </span>
+                                    </strong>
+                                  </div>
+                                  <div className="ai-verdict-row">
+                                    <span>Pikët e propozuara</span>
+                                    <strong>{aiProposedPoints}/{q.max_points}</strong>
+                                  </div>
+                                  <div className="confidence-wrap">
+                                    <div className="confidence-meta">
+                                      <span>Siguria e AI-së</span>
+                                      <strong>{formatAiConfidence(q.ai_confidence)}</strong>
+                                    </div>
+                                    <div className="confidence-track">
+                                      <div className="confidence-fill" style={{ width: `${aiConfidencePercent}%` }} />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="ai-feedback-panel">
+                              <span className="review-section-title">Arsyetimi i AI-së</span>
+                              <div className={`ai-feedback-text${q.ai_feedback_for_teacher ? "" : " ai-review-muted"}`}>
+                                {q.ai_feedback_for_teacher || "AI nuk ka dhënë arsyetim."}
+                              </div>
+                            </div>
+
+                            <div className="final-decision">
+                              <div className="final-decision-header">
+                                <span className="review-section-title" style={{ marginBottom: 0 }}>Vendimi përfundimtar</span>
+                                {teacherAdjusted && (
+                                  <span className="teacher-changed-badge">Ndryshuar nga mësimdhënësi</span>
+                                )}
+                              </div>
+                              <div className="final-control-row">
+                                <div className="final-choice-group">
+                                  <button
+                                    type="button"
+                                    className={`ans-btn${ans === true ? " sel-correct" : ""}`}
+                                    onClick={() => handleAnswer(q.question_id, true)}
+                                  >
+                                    <IconCheck /> E saktë
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`ans-btn${ans === false ? " sel-incorrect" : ""}`}
+                                    onClick={() => handleAnswer(q.question_id, false)}
+                                  >
+                                    <IconX /> E pasaktë
+                                  </button>
+                                </div>
+                                <div className="final-points">
+                                  <label htmlFor={`points-${q.question_id}`}>Pikët përfundimtare</label>
+                                  <input
+                                    id={`points-${q.question_id}`}
+                                    className="points-input"
+                                    type="number"
+                                    min={0}
+                                    max={q.max_points}
+                                    value={overridePoints}
+                                    onChange={(e) => handlePointOverride(q, e.target.value)}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
                       return (
                         <div key={q.question_id} className={`question-item${cls}`}>
                           <div className="question-num">{i + 1}</div>

@@ -26,7 +26,7 @@ export const deleteResult = async (resultId: number) => {
 export const submitBatchResults = async (
   studentId: number,
   testId: number,
-  answers: { question_id: number; is_correct: boolean }[]
+  answers: { question_id: number; is_correct: boolean; points_earned?: number }[]
 ) => {
   return await api.post(
     "/results/batch",
@@ -45,7 +45,7 @@ export const getTestResultState = async (studentId: number, testId: number) => {
 export const updateTestResults = async (
   studentId: number,
   testId: number,
-  answers: { question_id: number; is_correct: boolean }[]
+  answers: { question_id: number; is_correct: boolean; points_earned?: number }[]
 ) => {
   return await api.put(
     `/results/test/${testId}/student/${studentId}`,
