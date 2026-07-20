@@ -125,15 +125,6 @@ function IconQuestion() {
   );
 }
 
-function IconEdit() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-    </svg>
-  );
-}
-
 function IconPreview() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -172,7 +163,6 @@ function TestDetails() {
   const [statusSaving, setStatusSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [editingQuestionId, setEditingQuestionId] = useState<number | null>(null);
   const [pendingDeleteQuestionId, setPendingDeleteQuestionId] = useState<number | null>(null);
 
   const resetForm = () => {
@@ -186,7 +176,6 @@ function TestDetails() {
     setOptionC("");
     setOptionD("");
     setCorrectOption("A");
-    setEditingQuestionId(null);
     setFormError("");
   };
 
@@ -324,7 +313,7 @@ function TestDetails() {
     return true;
   };
 
-  const handleCreateOrUpdateQuestion = async (e: React.FormEvent) => {
+  const handleCreateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!id) return;
@@ -344,11 +333,7 @@ function TestDetails() {
         options: buildOptionsPayload(),
       };
 
-      if (editingQuestionId) {
-        await api.put(`/questions/${editingQuestionId}`, payload);
-      } else {
-        await api.post("/questions/", payload);
-      }
+      await api.post("/questions/", payload);
 
       resetForm();
       setModalOpen(false);
@@ -357,33 +342,12 @@ function TestDetails() {
       setFormError(
         getErrorMessage(
           err,
-          "Dështoi ruajtja e pyetjes. Kontrollo a e ke endpoint-in PUT /questions/{id} në backend.",
+          "Dështoi ruajtja e pyetjes.",
         )
       );
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleEditQuestion = (question: Question) => {
-    setEditingQuestionId(question.id);
-    setQuestionText(question.question_text);
-    setSelectedConceptId(question.concept_id);
-    setQuestionType(question.question_type ?? "multiple_choice");
-    setLayoutPosition(question.layout_position ?? "full");
-    setPoints(question.points ?? 1);
-
-    const options = question.options ?? [];
-    setOptionA(options[0]?.option_text ?? "");
-    setOptionB(options[1]?.option_text ?? "");
-    setOptionC(options[2]?.option_text ?? "");
-    setOptionD(options[3]?.option_text ?? "");
-
-    const correctIndex = options.findIndex((option) => option.is_correct);
-    setCorrectOption((["A", "B", "C", "D"][correctIndex] as "A" | "B" | "C" | "D") ?? "A");
-
-    setFormError("");
-    setModalOpen(true);
   };
 
   const handleDeleteQuestion = async (questionId: number) => {
@@ -1337,7 +1301,7 @@ function TestDetails() {
                 <div>
                   <div className="section-title">Pyetjet e testit</div>
                   <div className="section-sub">
-                    Shto, edito dhe përgatit pyetjet për PDF
+                    Shto dhe përgatit pyetjet për PDF
                   </div>
                 </div>
               </div>
@@ -1366,14 +1330,6 @@ function TestDetails() {
                     </div>
 
                     <div className="q-actions">
-                      <button
-                        className="btn-outline"
-                        onClick={() => handleEditQuestion(q)}
-                        title="Ndrysho pyetjen"
-                      >
-                        <IconEdit />
-                      </button>
-
                       <button
                         className="btn-danger-soft"
                         onClick={() => setPendingDeleteQuestionId(q.id)}
@@ -1455,7 +1411,7 @@ function TestDetails() {
           <div className="modal">
             <div className="modal-header">
               <div className="modal-title">
-                {editingQuestionId ? "Ndrysho pyetjen" : "Shto pyetje të re"}
+                Shto pyetje të re
               </div>
 
               <button
@@ -1469,7 +1425,7 @@ function TestDetails() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateOrUpdateQuestion}>
+            <form onSubmit={handleCreateQuestion}>
               {concepts.length === 0 && (
                 <div className="no-concepts-warn">
                   Ky test nuk ka tema të lidhura. Shtoni tema në lëndën e klasës fillimisht.
@@ -1725,8 +1681,6 @@ function TestDetails() {
                 >
                   {submitting
                     ? "Duke ruajtur…"
-                    : editingQuestionId
-                    ? "Ruaj ndryshimet"
                     : "Shto pyetjen"}
                 </button>
               </div>
