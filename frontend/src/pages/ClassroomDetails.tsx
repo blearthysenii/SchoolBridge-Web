@@ -268,7 +268,6 @@ function ClassroomDetails() {
   const [fullName, setFullName] = useState("");
   const [personalNumber, setPersonalNumber] = useState("");
   const [parentPhone, setParentPhone] = useState("");
-  const [finalGrade, setFinalGrade] = useState("");
   const [dateBirth, setDateBirth] = useState("");
 
   const [subjectName, setSubjectName] = useState("");
@@ -350,7 +349,6 @@ function ClassroomDetails() {
       setFullName("");
       setPersonalNumber("");
       setParentPhone("");
-      setFinalGrade("");
       setDateBirth("");
     }
     if (type === "subject") setSubjectName("");
@@ -401,7 +399,6 @@ function ClassroomDetails() {
     setFullName(s.full_name);
     setPersonalNumber(s.personal_number);
     setParentPhone(s.parent_phone ?? "");
-    setFinalGrade(s.final_grade !== null && s.final_grade !== undefined ? String(s.final_grade) : "");
     setDateBirth(s.date_birth ? s.date_birth.slice(0, 10) : "");
     openModal("editStudent");
   };
@@ -424,8 +421,8 @@ function ClassroomDetails() {
     if (!id) return;
     setSubmitting(true); setFormError("");
     try {
-      await createStudent(fullName, personalNumber, dateBirth, Number(id), parentPhone, finalGrade);
-      setFullName(""); setPersonalNumber(""); setParentPhone(""); setFinalGrade(""); setDateBirth("");
+      await createStudent(fullName, personalNumber, dateBirth, Number(id), parentPhone);
+      setFullName(""); setPersonalNumber(""); setParentPhone(""); setDateBirth("");
       await loadStudents();
       closeModal();
     } catch (err: unknown) {
@@ -491,10 +488,9 @@ function ClassroomDetails() {
         full_name: fullName,
         personal_number: personalNumber,
         parent_phone: parentPhone.trim() || null,
-        final_grade: finalGrade ? Number(finalGrade) : null,
         date_birth: dateBirth || null,
       });
-      setFullName(""); setPersonalNumber(""); setParentPhone(""); setFinalGrade(""); setDateBirth("");
+      setFullName(""); setPersonalNumber(""); setParentPhone(""); setDateBirth("");
       await loadStudents();
       closeModal();
       setBanner({ type: "success", text: "Nxënësi u përditësua me sukses." });
@@ -646,7 +642,6 @@ function ClassroomDetails() {
                         <th>Kodi i nxënësit</th>
                         <th>Numri personal</th>
                         <th>Telefoni i prindit</th>
-                        <th>Nota finale</th>
                         <th>Datëlindja</th>
                         <th></th>
                       </tr>
@@ -662,7 +657,6 @@ function ClassroomDetails() {
                           <td className="sb-td-meta">{s.student_code}</td>
                           <td className="sb-td-meta">{s.personal_number}</td>
                           <td className="sb-td-meta">{s.parent_phone || "—"}</td>
-                          <td className="sb-td-meta">{s.final_grade ?? "—"}</td>
                           <td className="sb-td-meta">
                             {s.date_birth
                               ? new Date(s.date_birth).toLocaleDateString("sq-AL", { day: "numeric", month: "short", year: "numeric" })
@@ -874,10 +868,6 @@ function ClassroomDetails() {
             <input className="sb-form-input" type="tel" placeholder="p.sh. +383 44 123 456" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
           </div>
           <div className="sb-form-group">
-            <label className="sb-form-label">Nota finale <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span></label>
-            <input className="sb-form-input" type="number" placeholder="p.sh. 5" value={finalGrade} onChange={(e) => setFinalGrade(e.target.value)} />
-          </div>
-          <div className="sb-form-group">
             <label className="sb-form-label">Datëlindja <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span></label>
             <input className="sb-form-input" type="date" value={dateBirth} onChange={(e) => setDateBirth(e.target.value)} />
           </div>
@@ -943,10 +933,6 @@ function ClassroomDetails() {
           <div className="sb-form-group">
             <label className="sb-form-label">Telefoni i prindit <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span></label>
             <input className="sb-form-input" type="tel" placeholder="p.sh. +383 44 123 456" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
-          </div>
-          <div className="sb-form-group">
-            <label className="sb-form-label">Nota finale <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span></label>
-            <input className="sb-form-input" type="number" placeholder="p.sh. 5" value={finalGrade} onChange={(e) => setFinalGrade(e.target.value)} />
           </div>
           <div className="sb-form-group">
             <label className="sb-form-label">Datëlindja <span style={{ color: "#94A3B8", fontWeight: 400 }}>(opcionale)</span></label>

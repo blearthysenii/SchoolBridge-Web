@@ -119,7 +119,6 @@ export default function InactiveStudents() {
                 <th>Kodi i nxënësit</th>
                 <th>Numri personal</th>
                 <th>Telefoni i prindit</th>
-                <th>Nota finale</th>
                 <th></th>
               </tr>
             </thead>
@@ -139,7 +138,6 @@ export default function InactiveStudents() {
                   <td className="sb-td-muted">{s.student_code}</td>
                   <td className="sb-td-muted">{s.personal_number}</td>
                   <td className="sb-td-muted">{s.parent_phone || "—"}</td>
-                  <td className="sb-td-muted">{s.final_grade ?? "—"}</td>
                   <td className="sb-td-actions">
                     <button
                       onClick={() => setPendingStudent(s)}

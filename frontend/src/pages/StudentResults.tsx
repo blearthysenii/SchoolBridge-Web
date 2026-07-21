@@ -253,7 +253,6 @@ function StudentResults() {
   const studentMeta = [
     `ID: ${id}`,
     analytics?.parent_phone ? `Prindi: ${analytics.parent_phone}` : null,
-    analytics?.final_grade !== null && analytics?.final_grade !== undefined ? `Nota finale: ${analytics.final_grade}` : null,
     "Rezultatet dhe analitika",
   ].filter(Boolean).join(" · ");
 
