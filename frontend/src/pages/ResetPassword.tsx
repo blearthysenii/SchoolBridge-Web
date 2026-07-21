@@ -96,23 +96,26 @@ function ResetPassword() {
 
         html, body, #root {
           width: 100%;
-          height: 100%;
-          max-height: 100vh;
+          min-height: 100dvh;
+          height: auto;
           background: #f0f0ee;
-          overflow: hidden;
+          overflow-x: hidden;
+          overflow-y: auto;
         }
 
         .sb-frame {
-          height: 100vh;
-          height: 100dvh;
+          min-height: 100dvh;
+          height: auto;
           width: 100%;
           display: flex;
           align-items: stretch;
           justify-content: center;
           padding: 20px;
+          padding-bottom: max(20px, env(safe-area-inset-bottom));
           background: #f0f0ee;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          overflow: hidden;
+          overflow-x: hidden;
+          overflow-y: auto;
         }
 
         .sb-frame-inner {
@@ -121,7 +124,9 @@ function ResetPassword() {
           border-radius: 12px;
           border: none;
           box-shadow: none;
-          overflow: hidden;
+          min-height: calc(100dvh - 40px);
+          height: auto;
+          overflow: visible;
           display: flex;
           flex-direction: column;
           flex: 1;
@@ -132,6 +137,9 @@ function ResetPassword() {
           display: flex;
           flex-direction: column;
           background: transparent;
+          min-height: 100%;
+          height: auto;
+          overflow: visible;
         }
 
         .sb-nav {
@@ -166,7 +174,7 @@ function ResetPassword() {
           flex: 1;
           display: flex;
           align-items: stretch;
-          overflow: hidden;
+          overflow: visible;
           min-height: 0;
         }
 
@@ -453,15 +461,17 @@ function ResetPassword() {
 
           .sb-frame {
             padding: 0;
-            overflow-y: auto;
-            height: auto;
-            min-height: 100vh;
             min-height: 100dvh;
+            height: auto;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding-bottom: max(24px, env(safe-area-inset-bottom));
           }
 
           .sb-frame-inner {
+            min-height: 100dvh;
             border-radius: 0;
-            overflow-y: auto;
+            overflow: visible;
             border: none;
             box-shadow: none;
             clip-path: none;
@@ -483,9 +493,9 @@ function ResetPassword() {
           .sb-body {
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             overflow: visible;
-            padding-bottom: 48px;
+            padding-bottom: max(48px, env(safe-area-inset-bottom));
           }
 
           .sb-left {
@@ -559,7 +569,8 @@ function ResetPassword() {
 
           .sb-input {
             font-size: 16px;
-            padding: 6px 26px 8px;
+            min-height: 44px;
+            padding: 8px 26px 10px;
           }
 
           .sb-input::placeholder {
@@ -576,7 +587,8 @@ function ResetPassword() {
 
           .sb-btn {
             min-width: 160px;
-            height: 42px;
+            min-height: 44px;
+            height: 44px;
             font-size: 14px;
           }
 
@@ -602,8 +614,99 @@ function ResetPassword() {
 
           .sb-btn {
             min-width: 150px;
-            height: 40px;
+            min-height: 44px;
+            height: 44px;
             font-size: 13.5px;
+          }
+        }
+
+        @media (max-height: 700px) {
+          .sb-frame {
+            align-items: flex-start;
+            padding-top: 12px;
+            padding-bottom: max(24px, env(safe-area-inset-bottom));
+          }
+
+          .sb-frame-inner {
+            min-height: auto;
+          }
+
+          .sb-body {
+            align-items: flex-start;
+            justify-content: flex-start;
+            overflow: visible;
+            padding-bottom: max(36px, env(safe-area-inset-bottom));
+          }
+
+          .sb-left {
+            padding-top: 24px;
+            padding-bottom: 36px;
+            overflow: visible;
+          }
+
+          .sb-wordmark {
+            font-size: 32px;
+            margin-bottom: 18px;
+          }
+
+          .sb-card {
+            padding-top: 34px;
+            padding-bottom: 32px;
+          }
+
+          .sb-field {
+            margin-bottom: 22px;
+          }
+
+          .sb-strength-bars {
+            margin-top: -10px;
+          }
+
+          .sb-strength-label {
+            margin-bottom: 16px;
+          }
+
+          .sb-illustration {
+            display: none;
+          }
+        }
+
+        @media (max-height: 700px) and (max-width: 480px) {
+          .sb-frame {
+            padding-top: 0;
+          }
+
+          .sb-body {
+            align-items: center;
+          }
+
+          .sb-left {
+            padding: 22px 18px max(36px, env(safe-area-inset-bottom));
+          }
+
+          .sb-wordmark {
+            font-size: 20px;
+            letter-spacing: 0.15em;
+            margin-bottom: 16px;
+          }
+
+          .sb-card {
+            padding: 28px 16px 26px;
+          }
+
+          .sb-field {
+            margin-bottom: 20px;
+          }
+        }
+
+        @media (max-height: 700px) and (max-width: 360px) {
+          .sb-wordmark {
+            font-size: 17px;
+            letter-spacing: 0.12em;
+          }
+
+          .sb-card {
+            padding: 22px 12px 24px;
           }
         }
       `}</style>

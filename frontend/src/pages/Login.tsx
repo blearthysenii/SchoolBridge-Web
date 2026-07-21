@@ -94,27 +94,29 @@ function Login() {
 
         html, body, #root {
           width: 100%;
-          height: 100%;
-          max-height: 100vh;
+          min-height: 100dvh;
+          height: auto;
           background: #f0f0ee;
-          overflow: hidden;
+          overflow-x: hidden;
+          overflow-y: auto;
         }
 
         /* ══════════════════════════════════════════
            OUTER FRAME — wraps everything like a big card
         ══════════════════════════════════════════ */
         .sb-frame {
-          height: 100vh;
-          height: 100dvh;
+          min-height: 100dvh;
+          height: auto;
           width: 100%;
           display: flex;
           align-items: stretch;
           justify-content: center;
           padding: 20px;
+          padding-bottom: max(20px, env(safe-area-inset-bottom));
           background: #f0f0ee;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          /* Hard-lock: no scroll ever */
-          overflow: hidden;
+          overflow-x: hidden;
+          overflow-y: auto;
         }
 
         .sb-frame-inner {
@@ -123,8 +125,9 @@ function Login() {
           border-radius: 12px;
           border: none;
           box-shadow: none;
-          /* Clip image inside the frame, no scroll */
-          overflow: hidden;
+          min-height: calc(100dvh - 40px);
+          height: auto;
+          overflow: visible;
           display: flex;
           flex-direction: column;
           flex: 1;
@@ -138,6 +141,9 @@ function Login() {
           display: flex;
           flex-direction: column;
           background: transparent;
+          min-height: 100%;
+          height: auto;
+          overflow: visible;
         }
 
         /* ══════════════════════════════════════════
@@ -175,8 +181,7 @@ function Login() {
           flex: 1;
           display: flex;
           align-items: stretch;
-          /* overflow hidden kills any scroll from the image */
-          overflow: hidden;
+          overflow: visible;
           min-height: 0;
         }
 
@@ -467,8 +472,22 @@ function Login() {
 
         /* ── Below 1230px: single column, login centred, hide image ── */
         @media (max-width: 1230px) {
-          .sb-frame       { padding: 0; overflow-y: auto; height: auto; min-height: 100vh; min-height: 100dvh; }
-          .sb-frame-inner { border-radius: 0; overflow-y: auto; border: none; box-shadow: none; clip-path: none; }
+          .sb-frame {
+            padding: 0;
+            min-height: 100dvh;
+            height: auto;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding-bottom: max(24px, env(safe-area-inset-bottom));
+          }
+          .sb-frame-inner {
+            min-height: 100dvh;
+            border-radius: 0;
+            overflow: visible;
+            border: none;
+            box-shadow: none;
+            clip-path: none;
+          }
           .sb-illustration { display: none; }
 
           .sb-nav {
@@ -488,9 +507,9 @@ function Login() {
           .sb-body {
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             overflow: visible;
-            padding-bottom: 48px;
+            padding-bottom: max(48px, env(safe-area-inset-bottom));
           }
 
           .sb-left {
@@ -533,14 +552,14 @@ function Login() {
           .sb-wordmark    { font-size: 20px; letter-spacing: 0.15em; margin-bottom: 20px; }
           .sb-card        { padding: 36px 22px 30px; }
           .sb-field       { margin-bottom: 30px; }
-          .sb-input       { font-size: 16px; padding: 6px 26px 8px; }
+          .sb-input       { font-size: 16px; min-height: 44px; padding: 8px 26px 10px; }
           .sb-input::placeholder { font-size: 13.5px; }
-          .sb-login-btn   { width: 120px; height: 42px; font-size: 14px; }
+          .sb-login-btn   { width: 120px; min-height: 44px; height: 44px; font-size: 14px; }
           .sb-secondary-actions { margin-top: 20px; gap: 12px; }
           .sb-signup-link { font-size: 14px; }
           .sb-forgot-link { font-size: 13px; }
           .sb-divider     { margin: 20px 0 14px; }
-          .sb-google-btn  { height: 42px; font-size: 13.5px; }
+          .sb-google-btn  { min-height: 44px; height: 44px; font-size: 13.5px; }
         }
 
         /* ── Small phone ≤360px ── */
@@ -552,11 +571,104 @@ function Login() {
           .sb-wordmark    { font-size: 17px; letter-spacing: 0.12em; }
           .sb-card        { padding: 28px 16px 26px; }
           .sb-field       { margin-bottom: 24px; }
-          .sb-input       { font-size: 16px; }
-          .sb-login-btn   { width: 114px; height: 40px; font-size: 13.5px; }
+          .sb-input       { font-size: 16px; min-height: 44px; }
+          .sb-login-btn   { width: 114px; min-height: 44px; height: 44px; font-size: 13.5px; }
           .sb-signup-link { font-size: 13.5px; }
-          .sb-google-btn  { height: 40px; font-size: 13px; gap: 7px; }
+          .sb-google-btn  { min-height: 44px; height: 44px; font-size: 13px; gap: 7px; }
           .sb-google-btn svg { width: 15px; height: 15px; }
+        }
+
+        @media (max-height: 700px) {
+          .sb-frame {
+            align-items: flex-start;
+            padding-top: 12px;
+            padding-bottom: max(24px, env(safe-area-inset-bottom));
+          }
+
+          .sb-frame-inner {
+            min-height: auto;
+          }
+
+          .sb-body {
+            align-items: flex-start;
+            justify-content: flex-start;
+            overflow: visible;
+            padding-bottom: max(36px, env(safe-area-inset-bottom));
+          }
+
+          .sb-left {
+            padding-top: 28px;
+            padding-bottom: 36px;
+          }
+
+          .sb-wordmark {
+            font-size: 32px;
+            margin-bottom: 20px;
+          }
+
+          .sb-card {
+            padding-top: 36px;
+            padding-bottom: 34px;
+          }
+
+          .sb-field {
+            margin-bottom: 26px;
+          }
+
+          .sb-remember {
+            margin-bottom: 20px;
+          }
+
+          .sb-secondary-actions {
+            margin-top: 20px;
+          }
+
+          .sb-divider {
+            margin: 20px 0 14px;
+          }
+
+          .sb-illustration {
+            display: none;
+          }
+        }
+
+        @media (max-height: 700px) and (max-width: 480px) {
+          .sb-frame {
+            padding-top: 0;
+          }
+
+          .sb-body {
+            align-items: center;
+          }
+
+          .sb-left {
+            padding: 24px 18px max(36px, env(safe-area-inset-bottom));
+          }
+
+          .sb-wordmark {
+            font-size: 20px;
+            letter-spacing: 0.15em;
+            margin-bottom: 18px;
+          }
+
+          .sb-card {
+            padding: 30px 20px 28px;
+          }
+
+          .sb-field {
+            margin-bottom: 22px;
+          }
+        }
+
+        @media (max-height: 700px) and (max-width: 360px) {
+          .sb-wordmark {
+            font-size: 17px;
+            letter-spacing: 0.12em;
+          }
+
+          .sb-card {
+            padding: 24px 14px 24px;
+          }
         }
       `}</style>
 

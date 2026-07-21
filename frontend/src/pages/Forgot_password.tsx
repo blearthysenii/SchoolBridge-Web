@@ -49,23 +49,26 @@ function ForgotPassword() {
 
         html, body, #root {
           width: 100%;
-          height: 100%;
-          max-height: 100vh;
+          min-height: 100dvh;
+          height: auto;
           background: #f0f0ee;
-          overflow: hidden;
+          overflow-x: hidden;
+          overflow-y: auto;
         }
 
         .sb-frame {
-          height: 100vh;
-          height: 100dvh;
+          min-height: 100dvh;
+          height: auto;
           width: 100%;
           display: flex;
           align-items: stretch;
           justify-content: center;
           padding: 20px;
+          padding-bottom: max(20px, env(safe-area-inset-bottom));
           background: #f0f0ee;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          overflow: hidden;
+          overflow-x: hidden;
+          overflow-y: auto;
         }
 
         .sb-frame-inner {
@@ -74,7 +77,9 @@ function ForgotPassword() {
           border-radius: 12px;
           border: none;
           box-shadow: none;
-          overflow: hidden;
+          min-height: calc(100dvh - 40px);
+          height: auto;
+          overflow: visible;
           display: flex;
           flex-direction: column;
           flex: 1;
@@ -85,6 +90,9 @@ function ForgotPassword() {
           display: flex;
           flex-direction: column;
           background: transparent;
+          min-height: 100%;
+          height: auto;
+          overflow: visible;
         }
 
         /* NAV */
@@ -108,7 +116,7 @@ function ForgotPassword() {
           flex: 1;
           display: flex;
           align-items: stretch;
-          overflow: hidden;
+          overflow: visible;
           min-height: 0;
         }
 
@@ -283,8 +291,22 @@ function ForgotPassword() {
         }
 
         @media (max-width: 1230px) {
-          .sb-frame       { padding: 0; overflow-y: auto; height: auto; min-height: 100vh; min-height: 100dvh; }
-          .sb-frame-inner { border-radius: 0; overflow-y: auto; border: none; box-shadow: none; clip-path: none; }
+          .sb-frame {
+            padding: 0;
+            min-height: 100dvh;
+            height: auto;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding-bottom: max(24px, env(safe-area-inset-bottom));
+          }
+          .sb-frame-inner {
+            min-height: 100dvh;
+            border-radius: 0;
+            overflow: visible;
+            border: none;
+            box-shadow: none;
+            clip-path: none;
+          }
           .sb-illustration { display: none; }
 
           .sb-nav { padding: 20px 24px 0; justify-content: center; }
@@ -293,9 +315,9 @@ function ForgotPassword() {
           .sb-body {
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             overflow: visible;
-            padding-bottom: 48px;
+            padding-bottom: max(48px, env(safe-area-inset-bottom));
           }
 
           .sb-left {
@@ -331,8 +353,8 @@ function ForgotPassword() {
           .sb-wordmark    { font-size: 20px; letter-spacing: 0.15em; margin-bottom: 20px; }
           .sb-card        { padding: 36px 22px 30px; }
           .sb-field       { margin-bottom: 30px; }
-          .sb-input       { font-size: 16px; padding: 6px 26px 8px; }
-          .sb-btn         { width: 120px; height: 42px; font-size: 14px; }
+          .sb-input       { font-size: 16px; min-height: 44px; padding: 8px 26px 10px; }
+          .sb-btn         { width: 120px; min-height: 44px; height: 44px; font-size: 14px; }
           .sb-bottom-text { margin-top: 20px; font-size: 13px; }
         }
 
@@ -342,7 +364,93 @@ function ForgotPassword() {
           .sb-wordmark    { font-size: 17px; letter-spacing: 0.12em; }
           .sb-card        { padding: 28px 16px 26px; }
           .sb-field       { margin-bottom: 24px; }
-          .sb-btn         { width: 114px; height: 40px; font-size: 13.5px; }
+          .sb-input       { min-height: 44px; }
+          .sb-btn         { width: 114px; min-height: 44px; height: 44px; font-size: 13.5px; }
+        }
+
+        @media (max-height: 700px) {
+          .sb-frame {
+            align-items: flex-start;
+            padding-top: 12px;
+            padding-bottom: max(24px, env(safe-area-inset-bottom));
+          }
+
+          .sb-frame-inner {
+            min-height: auto;
+          }
+
+          .sb-body {
+            align-items: flex-start;
+            justify-content: flex-start;
+            overflow: visible;
+            padding-bottom: max(36px, env(safe-area-inset-bottom));
+          }
+
+          .sb-left {
+            padding-top: 28px;
+            padding-bottom: 36px;
+          }
+
+          .sb-wordmark {
+            font-size: 32px;
+            margin-bottom: 20px;
+          }
+
+          .sb-card {
+            padding-top: 36px;
+            padding-bottom: 34px;
+          }
+
+          .sb-field {
+            margin-bottom: 26px;
+          }
+
+          .sb-card-title {
+            margin-bottom: 24px;
+          }
+
+          .sb-illustration {
+            display: none;
+          }
+        }
+
+        @media (max-height: 700px) and (max-width: 480px) {
+          .sb-frame {
+            padding-top: 0;
+          }
+
+          .sb-body {
+            align-items: center;
+          }
+
+          .sb-left {
+            padding: 24px 18px max(36px, env(safe-area-inset-bottom));
+          }
+
+          .sb-wordmark {
+            font-size: 20px;
+            letter-spacing: 0.15em;
+            margin-bottom: 18px;
+          }
+
+          .sb-card {
+            padding: 30px 20px 28px;
+          }
+
+          .sb-field {
+            margin-bottom: 22px;
+          }
+        }
+
+        @media (max-height: 700px) and (max-width: 360px) {
+          .sb-wordmark {
+            font-size: 17px;
+            letter-spacing: 0.12em;
+          }
+
+          .sb-card {
+            padding: 24px 14px 24px;
+          }
         }
       `}</style>
 
