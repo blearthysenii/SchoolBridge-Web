@@ -182,9 +182,17 @@ function IconEdit() {
   );
 }
 
+const ALBANIAN_WEEKDAYS = ["E diel", "E hënë", "E martë", "E mërkurë", "E enjte", "E premte", "E shtunë"];
+const ALBANIAN_MONTHS = ["janar", "shkurt", "mars", "prill", "maj", "qershor", "korrik", "gusht", "shtator", "tetor", "nëntor", "dhjetor"];
+const ALBANIAN_SHORT_MONTHS = ["Jan", "Shk", "Mar", "Pri", "Maj", "Qer", "Kor", "Gus", "Sht", "Tet", "Nën", "Dhj"];
+
 const formatPercent = (value?: number) => `${Math.round(value ?? 0)}%`;
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString("sq-AL", { day: "numeric", month: "short", year: "numeric" });
+const formatDate = (value: string) => {
+  const date = new Date(value);
+  return `${date.getDate()} ${ALBANIAN_SHORT_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+};
+const formatDashboardDate = (date = new Date()) =>
+  `${ALBANIAN_WEEKDAYS[date.getDay()]}, ${date.getDate()} ${ALBANIAN_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 const SCHOOL_MONTHS = ["Shtator", "Tetor", "Nëntor", "Dhjetor", "Janar", "Shkurt", "Mars", "Prill", "Maj", "Qershor", "Korrik", "Gusht"];
 const CALENDAR_MONTH_ORDER: Record<string, number> = {
   Janar: 1,
@@ -420,7 +428,7 @@ function Dashboard() {
   return (
     <Layout
       title={user ? `Mirë se erdhe, ${user.full_name.split(" ")[0]}` : "Paneli kryesor"}
-      subtitle={new Date().toLocaleDateString("sq-AL", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+      subtitle={formatDashboardDate()}
       user={user}
       actions={
         <button className="sb-btn sb-btn-primary" onClick={openCreateClassroomModal}>
