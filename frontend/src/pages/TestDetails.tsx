@@ -161,6 +161,9 @@ function TestDetails() {
   const [submitting, setSubmitting] = useState(false);
   const [publishingOnline, setPublishingOnline] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [showAllSessions, setShowAllSessions] = useState(false);
+  const [previewZoom, setPreviewZoom] = useState(1);
   const [formError, setFormError] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [pendingDeleteQuestionId, setPendingDeleteQuestionId] = useState<number | null>(null);
@@ -223,6 +226,18 @@ function TestDetails() {
   const orderedQuestions = useMemo(() => {
     return [...questions].sort((a, b) => a.id - b.id);
   }, [questions]);
+
+  const totalPoints = useMemo(() => {
+    return questions.reduce((sum, q) => sum + (q.points ?? 1), 0);
+  }, [questions]);
+
+  const usedConceptCount = useMemo(() => {
+    return new Set(questions.map((q) => q.concept_id)).size;
+  }, [questions]);
+
+  const visibleSessions = useMemo(() => {
+    return showAllSessions ? sessions : sessions.slice(0, 4);
+  }, [sessions, showAllSessions]);
 
   useEffect(() => {
     let cancelled = false;
@@ -410,7 +425,7 @@ function TestDetails() {
     setPublishingOnline(true);
     try {
       const response = await createTestSession(Number(id));
-      showToast("success", `Seanca në internet u krijua. Kodi: ${response.data.session_code}`);
+      showToast("success", `Testimi online u krijua. Kodi: ${response.data.session_code}`);
       navigate(`/test-sessions/${response.data.session_code}`);
     } catch (err: unknown) {
       showToast("error", getErrorMessage(err, "Dështoi publikimi në internet."));
@@ -420,10 +435,30 @@ function TestDetails() {
   };
 
   const getSessionStatusLabel = (status: TestSession["status"]) => {
-    if (status === "active") return "Aktive";
+    if (status === "active") return "Aktiv";
     if (status === "paused") return "Pauzuar";
     if (status === "ended") return "Përfunduar";
     return "Në pritje";
+  };
+
+  const getSessionActionLabel = (status: TestSession["status"]) => {
+    return status === "ended" ? "Shiko rezultatet" : "Menaxho testimin";
+  };
+
+  const handlePreviewFullscreen = () => {
+    const preview = document.getElementById("test-preview-paper");
+    if (preview?.requestFullscreen) {
+      void preview.requestFullscreen();
+    }
+  };
+
+  const handleBackToClassroom = () => {
+    if (test?.classroom_id) {
+      navigate(`/classrooms/${test.classroom_id}`);
+      return;
+    }
+
+    navigate("/dashboard");
   };
 
   const renderOptions = (question: Question) => {
@@ -441,7 +476,7 @@ function TestDetails() {
             >
               <span className="q-option-letter">{letter}</span>
               <span>{option.option_text}</span>
-              {option.is_correct && <span className="q-correct-badge">Saktë</span>}
+              {option.is_correct && <span className="q-correct-badge">✓</span>}
             </div>
           );
         })}
@@ -875,6 +910,8 @@ function TestDetails() {
 
         .btn-primary,
         .btn-secondary,
+        .btn-secondary-action,
+        .btn-neutral,
         .btn-outline,
         .btn-danger-soft,
         .btn-success {
@@ -1119,6 +1156,393 @@ function TestDetails() {
           margin-bottom: 14px;
         }
 
+        .test-hero {
+          background: rgba(255,255,255,0.78);
+          border: 1px solid rgba(226,232,240,0.9);
+          border-radius: 20px;
+          padding: 22px;
+          margin-bottom: 16px;
+          box-shadow: 0 12px 32px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.86);
+          backdrop-filter: blur(18px);
+        }
+
+        .test-hero-main {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 14px;
+        }
+
+        .test-title-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .test-description {
+          margin-top: 6px;
+          color: #64748b;
+          font-size: 13px;
+          line-height: 1.5;
+        }
+
+        .test-stats {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 14px;
+        }
+
+        .test-stat {
+          border: 1px solid rgba(226,232,240,0.82);
+          background: rgba(248,250,252,0.7);
+          border-radius: 14px;
+          padding: 12px;
+        }
+
+        .test-stat strong {
+          display: block;
+          color: #0f172a;
+          font-size: 18px;
+          line-height: 1;
+          margin-bottom: 5px;
+        }
+
+        .test-stat span {
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 750;
+        }
+
+        .test-actions {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 16px;
+        }
+
+        .btn-secondary-action {
+          background: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #bfdbfe;
+        }
+
+        .btn-secondary-action:hover {
+          background: #dbeafe;
+          transform: translateY(-1px);
+        }
+
+        .btn-neutral {
+          background: #fff;
+          color: #475569;
+          border: 1px solid rgba(226,232,240,0.92);
+          box-shadow: none;
+        }
+
+        .btn-neutral:hover {
+          background: #f8fafc;
+          border-color: #cbd5e1;
+          transform: translateY(-1px);
+        }
+
+        .more-wrap {
+          position: relative;
+          display: inline-flex;
+        }
+
+        .more-menu {
+          position: absolute;
+          right: 0;
+          top: calc(100% + 8px);
+          min-width: 210px;
+          padding: 8px;
+          border: 1px solid rgba(226,232,240,0.95);
+          border-radius: 16px;
+          background: rgba(255,255,255,0.96);
+          box-shadow: 0 18px 42px rgba(15,23,42,0.14);
+          z-index: 80;
+        }
+
+        .more-menu button {
+          width: 100%;
+          justify-content: flex-start;
+          box-shadow: none;
+          border-radius: 12px;
+        }
+
+        .sessions-card {
+          background: rgba(255,255,255,0.78);
+          border: 1px solid rgba(226,232,240,0.9);
+          border-radius: 20px;
+          margin-bottom: 16px;
+          overflow: hidden;
+          box-shadow: 0 12px 32px rgba(15,23,42,0.05);
+        }
+
+        .sessions-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 16px 18px;
+          border-bottom: 1px solid rgba(226,232,240,0.72);
+        }
+
+        .sessions-table-wrap {
+          overflow-x: auto;
+        }
+
+        .sessions-table {
+          width: 100%;
+          border-collapse: collapse;
+          min-width: 700px;
+        }
+
+        .sessions-table th {
+          text-align: left;
+          color: #64748b;
+          font-size: 11px;
+          font-weight: 850;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          padding: 12px 18px;
+          background: rgba(248,250,252,0.7);
+        }
+
+        .sessions-table td {
+          padding: 13px 18px;
+          border-top: 1px solid rgba(241,245,249,0.96);
+          color: #334155;
+          font-size: 13px;
+          vertical-align: middle;
+        }
+
+        .session-code-pill {
+          display: inline-flex;
+          align-items: center;
+          border-radius: 11px;
+          border: 1px solid #bfdbfe;
+          background: #eff6ff;
+          color: #1d4ed8;
+          padding: 5px 9px;
+          font-size: 12px;
+          font-weight: 900;
+          letter-spacing: 0.04em;
+        }
+
+        .session-status-badge {
+          display: inline-flex;
+          align-items: center;
+          border-radius: 999px;
+          padding: 5px 9px;
+          font-size: 11.5px;
+          font-weight: 850;
+          border: 1px solid transparent;
+        }
+
+        .session-status-badge.ended { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+        .session-status-badge.waiting { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+        .session-status-badge.active { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+        .session-status-badge.paused { background: #f8fafc; color: #64748b; border-color: #e2e8f0; }
+
+        .sessions-footer {
+          display: flex;
+          justify-content: center;
+          padding: 12px 18px 16px;
+          border-top: 1px solid rgba(241,245,249,0.96);
+        }
+
+        .question-list { padding: 10px; gap: 10px; }
+
+        .question-card {
+          border-radius: 16px;
+          border-color: rgba(226,232,240,0.9);
+          background: rgba(255,255,255,0.82);
+          padding: 13px;
+          box-shadow: none;
+        }
+
+        .question-card:hover {
+          background: #fff;
+          border-color: #bfdbfe;
+          box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+        }
+
+        .q-num {
+          width: 28px;
+          height: 28px;
+          border-radius: 9px;
+        }
+
+        .q-top-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 7px;
+        }
+
+        .q-meta-line { margin-bottom: 0; }
+
+        .q-points {
+          flex-shrink: 0;
+          color: #0f172a;
+          font-size: 12.5px;
+          font-weight: 900;
+          white-space: nowrap;
+          padding-top: 2px;
+        }
+
+        .q-text { font-size: 13.5px; }
+
+        .q-actions {
+          opacity: 0;
+          transition: opacity 0.16s ease;
+        }
+
+        .question-card:hover .q-actions,
+        .q-actions:focus-within {
+          opacity: 1;
+        }
+
+        .q-option {
+          border-radius: 12px;
+          background: #fff;
+        }
+
+        .q-option-correct {
+          border-color: #86efac;
+          background: #f0fdf4;
+        }
+
+        .q-option-correct .q-option-letter {
+          background: #dcfce7;
+          color: #15803d;
+        }
+
+        .q-correct-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 20px;
+          padding: 0;
+          background: #dcfce7;
+          color: #15803d;
+          border: 1px solid #86efac;
+        }
+
+        .preview-panel {
+          top: 88px;
+          max-height: calc(100vh - 108px);
+          display: flex;
+          flex-direction: column;
+        }
+
+        .preview-header {
+          display: block;
+          gap: 12px;
+        }
+
+        .preview-header > div:first-child {
+          min-width: 0;
+          margin-bottom: 10px;
+        }
+
+        .preview-toolbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 4px;
+          border: 1px solid rgba(226,232,240,0.9);
+          border-radius: 13px;
+          background: rgba(255,255,255,0.72);
+          padding: 4px;
+          flex-shrink: 0;
+          width: 100%;
+        }
+
+        .zoom-btn,
+        .zoom-value {
+          border: none;
+          background: transparent;
+          color: #475569;
+          min-width: 32px;
+          height: 28px;
+          border-radius: 9px;
+          font-size: 12px;
+          font-weight: 850;
+          cursor: pointer;
+          padding: 0 8px;
+        }
+
+        .zoom-btn.icon {
+          min-width: 30px;
+          padding: 0;
+          font-size: 16px;
+        }
+
+        .zoom-btn.fullscreen {
+          flex: 1;
+          min-width: 98px;
+        }
+
+        .zoom-btn:hover {
+          background: #eff6ff;
+          color: #1d4ed8;
+        }
+
+        .zoom-value {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: default;
+          min-width: 48px;
+          color: #0f172a;
+        }
+
+        .preview-body {
+          overflow: auto;
+          flex: 1;
+          padding: 18px;
+          background: #f8fafc;
+        }
+
+        .paper-shell {
+          width: 100%;
+          min-width: 100%;
+          display: flex;
+          justify-content: center;
+          overflow: visible;
+          padding: 4px 0 12px;
+        }
+
+        .paper {
+          width: min(100%, 330px);
+          min-height: 470px;
+          max-height: none;
+          border-radius: 8px;
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 18px 38px rgba(15,23,42,0.12);
+          transform-origin: top center;
+          overflow: visible;
+        }
+
+        .paper:fullscreen {
+          width: min(92vw, 794px) !important;
+          min-height: min(130vw, 1123px);
+          overflow: auto;
+          padding: 48px;
+          border-radius: 0;
+          box-shadow: none;
+        }
+
         @media (max-width: 980px) {
           .builder-grid {
             grid-template-columns: 1fr;
@@ -1126,6 +1550,7 @@ function TestDetails() {
 
           .preview-panel {
             position: static;
+            max-height: none;
           }
         }
 
@@ -1144,6 +1569,33 @@ function TestDetails() {
             flex-direction: column;
           }
 
+          .test-hero-main {
+            flex-direction: column;
+          }
+
+          .test-actions,
+          .sessions-header {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .test-actions > button,
+          .test-actions .more-wrap,
+          .test-actions .more-wrap > button,
+          .sessions-header .btn-secondary-action {
+            width: 100%;
+          }
+
+          .more-menu {
+            position: static;
+            width: 100%;
+            margin-top: 8px;
+          }
+
+          .test-stats {
+            grid-template-columns: 1fr;
+          }
+
           .builder-actions {
             flex-direction: column;
           }
@@ -1157,8 +1609,18 @@ function TestDetails() {
             flex-direction: column;
           }
 
+          .q-top-row {
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .q-points {
+            padding-top: 0;
+          }
+
           .q-actions {
             width: 100%;
+            opacity: 1;
           }
 
           .q-actions button {
@@ -1172,6 +1634,73 @@ function TestDetails() {
             grid-template-columns: 1fr;
           }
 
+          .sessions-table-wrap {
+            overflow: visible;
+          }
+
+          .sessions-table,
+          .sessions-table thead,
+          .sessions-table tbody,
+          .sessions-table tr,
+          .sessions-table th,
+          .sessions-table td {
+            display: block;
+            width: 100%;
+            min-width: 0;
+          }
+
+          .sessions-table thead {
+            display: none;
+          }
+
+          .sessions-table tbody {
+            display: grid;
+            gap: 10px;
+            padding: 12px;
+          }
+
+          .sessions-table tr {
+            border: 1px solid rgba(226,232,240,0.9);
+            border-radius: 15px;
+            background: #fff;
+            padding: 12px;
+          }
+
+          .sessions-table td {
+            border: 0;
+            padding: 6px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+          }
+
+          .sessions-table td::before {
+            content: attr(data-label);
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 850;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+          }
+
+          .sessions-table td:last-child {
+            display: block;
+            padding-top: 10px;
+          }
+
+          .sessions-table td:last-child .btn-outline {
+            width: 100%;
+          }
+
+          .preview-toolbar {
+            margin-top: 8px;
+          }
+
+          .preview-body {
+            max-height: 70vh;
+          }
+
           .modal { padding: 22px; }
           .modal-actions { flex-direction: column-reverse; }
           .modal-actions button { width: 100%; justify-content: center; }
@@ -1180,7 +1709,7 @@ function TestDetails() {
 
       <header className="topbar">
         <div className="topbar-left">
-          <button className="back-btn" onClick={() => navigate(-1)}>
+          <button className="back-btn" onClick={handleBackToClassroom}>
             <IconBack /> Kthehu
           </button>
 
@@ -1212,86 +1741,174 @@ function TestDetails() {
       </header>
 
       <div className="page">
-        <div className="page-header">
-          <div className="page-header-top">
+        <section className="test-hero">
+          <div className="test-hero-main">
             <div>
-              <div className="page-title">{test?.title ?? `Testi #${id}`}</div>
-              <div className="page-meta">
-                ID: {id} · Ndërtues testi për printim dhe analizë
-              </div>
-
-              <div className="meta-pills">
-                <span className="meta-pill">{questions.length} pyetje</span>
-                <span className="meta-pill">
-                  {questions.reduce((sum, q) => sum + (q.points ?? 1), 0)} pikë
+              <div className="test-title-row">
+                <h1 className="page-title">{test?.title ?? `Testi #${id}`}</h1>
+                <span className={`status-pill ${test?.status === "published" ? "published" : ""}`}>
+                  {getStatusLabel(test?.status)}
                 </span>
-                {concepts.length > 0 && (
-                  <span className="meta-pill">{concepts.length} tema</span>
+              </div>
+              <div className="test-description">
+                ID: {id} · Ndërtues testi për printim, testime online dhe analizë të rezultateve.
+              </div>
+            </div>
+
+            <div className="test-actions">
+              <button
+                className="btn-primary"
+                disabled={statusSaving || questions.length === 0}
+                onClick={() => handleUpdateStatus("published")}
+              >
+                {statusSaving
+                  ? "Duke ruajtur…"
+                  : test?.status === "published"
+                    ? "Përditëso testin"
+                    : "Publiko Testin"}
+              </button>
+
+              <button
+                className="btn-secondary-action"
+                disabled={publishingOnline || questions.length === 0}
+                onClick={handlePublishOnline}
+              >
+                {publishingOnline ? "Duke publikuar…" : "Publiko në internet"}
+              </button>
+
+              <button
+                className="btn-neutral"
+                onClick={handleDownloadPdf}
+              >
+                Shkarko PDF
+              </button>
+
+              <div className="more-wrap">
+                <button
+                  type="button"
+                  className="btn-neutral"
+                  onClick={() => setMoreOpen((prev) => !prev)}
+                >
+                  Më shumë
+                </button>
+
+                {moreOpen && (
+                  <div className="more-menu">
+                    <button
+                      type="button"
+                      className="btn-neutral"
+                      disabled={statusSaving}
+                      onClick={() => {
+                        setMoreOpen(false);
+                        void handleUpdateStatus("draft");
+                      }}
+                    >
+                      {statusSaving ? "Duke ruajtur…" : "Ruaj si skicë"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-neutral"
+                      onClick={() => {
+                        setMoreOpen(false);
+                        setPreviewOpen((prev) => !prev);
+                      }}
+                    >
+                      <IconPreview />
+                      {previewOpen ? "Fsheh pamjen paraprake" : "Shfaq pamjen paraprake"}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
-
-            <span className={`status-pill ${test?.status === "published" ? "published" : ""}`}>
-              {getStatusLabel(test?.status)}
-            </span>
           </div>
 
-          <div className="builder-actions">
-            <button
-              className="btn-secondary"
-              disabled={statusSaving}
-              onClick={() => handleUpdateStatus("draft")}
-            >
-              {statusSaving ? "Duke ruajtur…" : "Ruaj si skicë"}
-            </button>
+          <div className="test-stats">
+            <div className="test-stat">
+              <strong>{questions.length}</strong>
+              <span>Pyetje</span>
+            </div>
+            <div className="test-stat">
+              <strong>{totalPoints}</strong>
+              <span>Pikë totale</span>
+            </div>
+            <div className="test-stat">
+              <strong>{usedConceptCount}</strong>
+              <span>Tema</span>
+            </div>
+          </div>
+        </section>
 
+        <section className="sessions-card">
+          <div className="sessions-header">
+            <div>
+              <div className="section-title">Testimet online</div>
+              <div className="section-sub">Menaxhoni kodet, statusin dhe rezultatet e testimeve online.</div>
+            </div>
             <button
-              className="btn-success"
-              disabled={statusSaving || questions.length === 0}
-              onClick={() => handleUpdateStatus("published")}
-            >
-              Publiko Testin
-            </button>
-
-            <button
-              className="btn-outline"
-              onClick={() => setPreviewOpen((prev) => !prev)}
-            >
-              <IconPreview />
-              {previewOpen ? "Fsheh pamjen paraprake" : "Shfaq pamjen paraprake"}
-            </button>
-
-            <button
-              className="btn-outline"
-              onClick={handleDownloadPdf}
-            >
-              Shkarko PDF
-            </button>
-
-            <button
-              className="btn-success"
+              className="btn-secondary-action"
               disabled={publishingOnline || questions.length === 0}
               onClick={handlePublishOnline}
             >
-              {publishingOnline ? "Duke publikuar…" : "Publiko në internet"}
+              <IconPlus /> {publishingOnline ? "Duke krijuar…" : "Krijo testim online"}
             </button>
           </div>
 
-          {sessions.length > 0 && (
-            <div className="online-session-strip">
-              {sessions.slice(0, 4).map((session) => (
-                <Link
-                  key={session.id}
-                  to={`/test-sessions/${session.session_code}`}
-                  className="online-session-link"
-                >
-                  Kodi {session.session_code}
-                  <span>{getSessionStatusLabel(session.status)} · {session.attempts.length} nxënës</span>
-                </Link>
-              ))}
+          {sessions.length === 0 ? (
+            <div className="empty-state">
+              <strong>Nuk ka testime online ende</strong>
+              Krijoni një testim online për t'ua dërguar nxënësve testin në internet.
             </div>
+          ) : (
+            <>
+              <div className="sessions-table-wrap">
+                <table className="sessions-table">
+                  <thead>
+                    <tr>
+                      <th>Kodi i testimit</th>
+                      <th>Statusi</th>
+                      <th>Nxënësit</th>
+                      <th>Veprimi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleSessions.map((session) => (
+                      <tr key={session.id}>
+                        <td data-label="Kodi">
+                          <span className="session-code-pill">{session.session_code}</span>
+                        </td>
+                        <td data-label="Statusi">
+                          <span className={`session-status-badge ${session.status}`}>
+                            {getSessionStatusLabel(session.status)}
+                          </span>
+                        </td>
+                        <td data-label="Nxënësit">
+                          {session.attempts.length} nxënës
+                        </td>
+                        <td data-label="Veprimi">
+                          <Link to={`/test-sessions/${session.session_code}`} className="btn-outline">
+                            {getSessionActionLabel(session.status)}
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {sessions.length > 4 && (
+                <div className="sessions-footer">
+                  <button
+                    type="button"
+                    className="btn-neutral"
+                    onClick={() => setShowAllSessions((prev) => !prev)}
+                  >
+                    {showAllSessions ? "Shfaq më pak" : "Shiko të gjitha"}
+                  </button>
+                </div>
+              )}
+            </>
           )}
-        </div>
+        </section>
 
         <div className={previewOpen ? "builder-grid" : ""}>
           <div className="panel">
@@ -1319,10 +1936,12 @@ function TestDetails() {
                     <div className="q-num">{index + 1}</div>
 
                     <div className="q-main">
-                      <div className="q-meta-line">
-                        <span className="q-chip blue">{getConceptName(q.concept_id)}</span>
-                        <span className="q-chip">{getQuestionTypeLabel(q.question_type)}</span>
-                        <span className="q-chip">{q.points ?? 1} pikë</span>
+                      <div className="q-top-row">
+                        <div className="q-meta-line">
+                          <span className="q-chip blue">{getConceptName(q.concept_id)}</span>
+                          <span className="q-chip">{getQuestionTypeLabel(q.question_type)}</span>
+                        </div>
+                        <div className="q-points">{q.points ?? 1} pikë</div>
                       </div>
 
                       <div className="q-text">{q.question_text}</div>
@@ -1348,49 +1967,90 @@ function TestDetails() {
 
           {previewOpen && (
             <div className="panel preview-panel">
-              <div className="panel-header">
+              <div className="panel-header preview-header">
                 <div>
                   <div className="section-title">Pamja paraprake e testit</div>
                   <div className="section-sub">Pamja afërsisht si në PDF</div>
                 </div>
+                <div className="preview-toolbar" aria-label="Kontrollet e pamjes paraprake">
+                  <button
+                    type="button"
+                    className="zoom-btn icon"
+                    title="Zvogëlo"
+                    onClick={() => setPreviewZoom((prev) => Math.max(0.8, Number((prev - 0.1).toFixed(1))))}
+                  >
+                    −
+                  </button>
+                  <button
+                    type="button"
+                    className="zoom-value"
+                    onClick={() => setPreviewZoom(1)}
+                  >
+                    {Math.round(previewZoom * 100)}%
+                  </button>
+                  <button
+                    type="button"
+                    className="zoom-btn icon"
+                    title="Zmadho"
+                    onClick={() => setPreviewZoom((prev) => Math.min(1.3, Number((prev + 0.1).toFixed(1))))}
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    className="zoom-btn fullscreen"
+                    onClick={handlePreviewFullscreen}
+                  >
+                    Ekran i plotë
+                  </button>
+                </div>
               </div>
 
               <div className="preview-body">
-                <div className="paper">
-                  <div className="paper-title">{test?.title ?? `Testi #${id}`}</div>
+                <div className="paper-shell">
+                  <div
+                    id="test-preview-paper"
+                    className="paper"
+                    style={{
+                      width: `${330 * previewZoom}px`,
+                      maxWidth: previewZoom <= 1 ? "100%" : "none",
+                    }}
+                  >
+                    <div className="paper-title">{test?.title ?? `Testi #${id}`}</div>
 
-                  <div className="paper-info">
-                    <div>Emri: __________________</div>
-                    <div>Klasa: __________________</div>
-                    <div>Data: __________________</div>
-                    <div>Pikët: {questions.reduce((sum, q) => sum + (q.points ?? 1), 0)}</div>
-                  </div>
-
-                  {orderedQuestions.length === 0 ? (
-                    <div className="empty-state" style={{ margin: 0 }}>
-                      <strong>Nuk ka pyetje për pamje paraprake</strong>
+                    <div className="paper-info">
+                      <div>Emri: __________________</div>
+                      <div>Klasa: __________________</div>
+                      <div>Data: __________________</div>
+                      <div>Pikët: {totalPoints}</div>
                     </div>
-                  ) : (
-                    orderedQuestions.map((q, index) => (
-                      <div key={q.id} className="paper-question">
-                        <div className="paper-q-text">
-                          {index + 1}. {q.question_text} ({q.points ?? 1} pikë)
-                        </div>
 
-                        {q.options && q.options.length > 0 ? (
-                          <div className="paper-options">
-                            {q.options.map((option, optionIndex) => (
-                              <div key={option.id}>
-                                {["A", "B", "C", "D"][optionIndex] ?? optionIndex + 1}) {option.option_text}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="paper-answer-line" />
-                        )}
+                    {orderedQuestions.length === 0 ? (
+                      <div className="empty-state" style={{ margin: 0 }}>
+                        <strong>Nuk ka pyetje për pamje paraprake</strong>
                       </div>
-                    ))
-                  )}
+                    ) : (
+                      orderedQuestions.map((q, index) => (
+                        <div key={q.id} className="paper-question">
+                          <div className="paper-q-text">
+                            {index + 1}. {q.question_text} ({q.points ?? 1} pikë)
+                          </div>
+
+                          {q.options && q.options.length > 0 ? (
+                            <div className="paper-options">
+                              {q.options.map((option, optionIndex) => (
+                                <div key={option.id}>
+                                  {["A", "B", "C", "D"][optionIndex] ?? optionIndex + 1}) {option.option_text}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="paper-answer-line" />
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

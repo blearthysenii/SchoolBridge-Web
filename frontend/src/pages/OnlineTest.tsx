@@ -127,7 +127,7 @@ function OnlineTest() {
       setAttempt(response.data);
       setAnswers(savedAnswersToState(response.data.saved_answers));
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "Kodi i seancës ose kodi i nxënësit nuk është i saktë."));
+      setError(getErrorMessage(err, "Kodi i testimit ose kodi i nxënësit nuk është i saktë."));
     } finally {
       setLoading(false);
     }
@@ -195,7 +195,7 @@ function OnlineTest() {
         <div className="public-card center">
           <div className="status-icon"><Clock size={34} /></div>
           <h1>Në pritje</h1>
-          <p>Testi do të hapet kur mësuesi të klikojë Nis.</p>
+          <p>Testi do të hapet kur mësuesi të fillojë testimin.</p>
         </div>
       );
     }
@@ -236,7 +236,7 @@ function OnlineTest() {
           <form className="public-card join-card" onSubmit={handleJoin}>
             <h1>Hyr në testin në internet</h1>
             <div className="public-field">
-              <label>Kodi i seancës</label>
+              <label>Kodi i testimit</label>
               <input
                 value={sessionInput}
                 onChange={(e) => setSessionInput(e.target.value.toUpperCase())}
@@ -256,7 +256,7 @@ function OnlineTest() {
             </div>
             {error && <div className="public-error">{error}</div>}
             <button className="public-btn" disabled={loading}>
-              {loading ? "Duke kontrolluar…" : "Hyr në seancë"}
+              {loading ? "Duke kontrolluar…" : "Hyr në testim"}
             </button>
           </form>
         ) : attempt.session_status !== "active" || success || attempt.attempt_status === "submitted" ? (

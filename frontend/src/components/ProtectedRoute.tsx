@@ -43,7 +43,7 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
   }, [location.pathname]);
 
   if (authState === "checking") {
-    return <PageLoader text="Duke verifikuar sesionin…" />;
+    return <PageLoader text="Duke verifikuar hyrjen…" />;
   }
 
   if (authState === "unauthenticated") {
