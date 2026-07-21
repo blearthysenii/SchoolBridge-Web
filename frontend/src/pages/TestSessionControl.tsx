@@ -120,6 +120,42 @@ type AiAnalysis = {
   updated_at: string;
 };
 
+const KOSOVO_TIME_ZONE = "Europe/Belgrade";
+const ISO_TIMEZONE_PATTERN = /(Z|[+-]\d{2}:?\d{2})$/i;
+const KOSOVO_DATE_TIME_FORMATTER = new Intl.DateTimeFormat("sq-AL", {
+  timeZone: KOSOVO_TIME_ZONE,
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
+
+const parseUtcTimestamp = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const normalizedValue = ISO_TIMEZONE_PATTERN.test(trimmed) ? trimmed : `${trimmed}Z`;
+  const date = new Date(normalizedValue);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const formatKosovoDateTime = (value: string) => {
+  const date = parseUtcTimestamp(value);
+  if (!date) return value;
+
+  const parts = Object.fromEntries(
+    KOSOVO_DATE_TIME_FORMATTER.formatToParts(date)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+
+  return `${parts.day}.${parts.month}.${parts.year}, ${parts.hour}:${parts.minute}:${parts.second}`;
+};
+
 const statusLabel: Record<string, string> = {
   waiting: "Në pritje",
   active: "Aktiv",
@@ -750,7 +786,7 @@ function TestSessionControl() {
                       <div className="panel-title">Analiza nga AI</div>
                       {aiAnalysis && (
                         <div className="ai-meta">
-                          Modeli: {aiAnalysis.model_name} · Përditësuar: {new Date(aiAnalysis.updated_at).toLocaleString("sq-AL")}
+                          Modeli: {aiAnalysis.model_name} · Përditësuar: {formatKosovoDateTime(aiAnalysis.updated_at)}
                         </div>
                       )}
                     </div>
